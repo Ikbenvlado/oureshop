@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f3ff;
+  --foreground: #1e1b4b;
+  --surface: #ffffff;
+  --surface-2: #f9f7ff;
+  --border-color: #f3e8ff;
+  --text-muted: #6b7280;
+}
+
+.dark {
+  --background: #0f0e1a;
+  --foreground: #f0eeff;
+  --surface: #1a1826;
+  --surface-2: #14121f;
+  --border-color: #2d2a45;
+  --text-muted: #9ca3af;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+  transition: background 0.2s, color 0.2s;
+}
+
+button,
+select,
+a,
+[role="button"] {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-btn {
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  transition: opacity 0.2s;
+}
+
+.gradient-btn:hover {
+  opacity: 0.9;
+}
+
+.gradient-btn:disabled {
+  background: #d1d5db;
+  opacity: 1;
+}
+
+/* Dark mode — zmaž svetlé tiene okolo tlačidiel */
+.dark .shadow-purple-200,
+.dark .shadow-purple-100 {
+  --tw-shadow-color: rgb(88 28 135 / 0.25);
+}
+.dark .shadow-green-200 {
+  --tw-shadow-color: rgb(20 83 45 / 0.25);
+}
+
+.card-hover {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(124, 58, 237, 0.15);
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
 }

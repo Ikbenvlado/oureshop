@@ -1,0 +1,11 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+// Simple middleware - auth protection is handled at the component/API route level
+export function middleware(_request: NextRequest) {
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.json).*)"],
+};

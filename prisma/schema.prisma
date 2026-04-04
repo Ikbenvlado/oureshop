@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  customer
+  editor
+  support
+  admin
+  super_admin
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String   @default("")
+  phone        String   @default("")
+  role         Role     @default(customer)
+  blocked      Boolean  @default(false)
+  customerSeq  Int?     @unique @map("customer_seq")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  addresses     Address[]
+  orders        Order[]
+  favorites     Favorite[]
+  reviews       Review[]
+  adminSessions AdminSession[]
+  adminLogs     AdminLog[]
+
+  @@map("users")
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  label     String
+  street    String
+  city      String
+  zip       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  sku         String?  @unique
+  name        String
+  price       Float
+  image       String
+  category    String
+  description String   @default("")
+  nameEn      String?  @map("name_en")
+  descriptionEn String? @map("description_en")
+  rating      Float    @default(4.5)
+  reviews     Int      @default(0)
+  inStock     Boolean  @default(true) @map("in_stock")
+  discount    Float?
+  stock       Int?
+  variants    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  favorites      Favorite[]
+  productReviews Review[]   @relation("ProductReviews")
+
+  @@map("products")
+}
+
+model Order {
+  id            String   @id
+  userId        String?  @map("user_id")
+  customerName  String   @map("customer_name")
+  customerEmail String   @map("customer_email")
+  address       String
+  total         Float
+  status        String   @default("nová")
+  date          String
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id       Int    @id @default(autoincrement())
+  orderId  String @map("order_id")
+  name     String
+  price    Float
+  quantity Int
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id")
+  productId Int      @map("product_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("favorites")
+}
+
+model LoginAttempt {
+  email       String
+  ip          String
+  attempts    Int      @default(1)
+  lockedUntil DateTime? @map("locked_until")
+  lastAt      DateTime  @updatedAt @map("last_at")
+
+  @@id([email, ip])
+  @@map("login_attempts")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("password_reset_tokens")
+}
+
+model Coupon {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  type      String    // "percent" | "fixed" | "shipping"
+  value     Float
+  minOrder  Float     @default(0) @map("min_order")
+  maxUses   Int?      @map("max_uses")
+  usedCount Int       @default(0) @map("used_count")
+  active    Boolean   @default(true)
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("coupons")
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+model AdminLog {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id")
+  email     String
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  detail    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_logs")
+}
+
+model AdminSession {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  email     String
+  ip        String    @default("")
+  userAgent String    @default("") @map("user_agent")
+  loginAt   DateTime  @default(now()) @map("login_at")
+  logoutAt  DateTime? @map("logout_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_sessions")
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  userId    String   @map("user_id")
+  rating    Int
+  comment   String
+  status    String   @default("pending")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade, name: "ProductReviews")
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model Page {
+  slug      String   @id
+  title     String
+  content   String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("pages")
+}
+
+model PageView {
+  id        String   @id @default(uuid())
+  path      String
+  referrer  String?
+  ip        String?
+  userAgent String?  @map("user_agent")
+  country   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([path])
+  @@map("page_views")
+}

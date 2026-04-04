@@ -1,0 +1,167 @@
+================================================================
+  OurStone — Prezentačný návod
+  https://ourstone.fun
+================================================================
+
+
+AKO ZÁKAZNÍK
+============
+
+1. PREHLIADANIE PRODUKTOV
+   - Na hlavnej stránke vidíš všetky produkty
+   - Môžeš filtrovať podľa kategórie (Elektronika, Oblečenie, Nábytok...)
+   - Môžeš zoradiť produkty podľa ceny, hodnotenia alebo názvu
+   - Vyhľadávanie produktov podľa názvu
+   - Prepínanie jazyka SK / EN (tlačidlo v pravom hornom rohu)
+
+2. DETAIL PRODUKTU
+   - Kliknutím na produkt sa zobrazí jeho detail
+   - Fotka produktu s možnosťou zväčšenia (klik na obrázok)
+   - Popis, hodnotenie, dostupnosť, zľava
+   - Tlačidlo "Pridať do košíka"
+   - Súvisiace produkty z rovnakej kategórie
+   - Recenzie zákazníkov (len schválené)
+   - Formulár na napísanie vlastnej recenzie (vyžaduje prihlásenie)
+
+3. KOŠÍK
+   - Pridané produkty vidíš v mini košíku (ikona v pravom hornom rohu)
+   - Stránka /cart zobrazuje kompletný košík
+   - Možnosť meniť množstvo alebo odstrániť produkt
+   - Zobrazuje sa súčet, doprava a celková suma
+   - Doprava zadarmo od určitej sumy
+
+4. POKLADŇA (CHECKOUT)
+   - Krok 1: Vyplníš meno, email, telefón a doručovaciu adresu
+   - Voliteľne zadáš zľavový kupón
+   - Krok 2: Platba kartou cez Stripe
+   - Testovacia karta: 4242 4242 4242 4242 | exp: 12/28 | CVV: 123
+   - Po zaplatení dostaneš potvrdzovací email
+
+5. ZÁKAZNÍCKY ÚČET (/account)
+   - Registrácia a prihlásenie
+   - Úprava profilu (meno, email, telefón)
+   - História objednávok
+   - Uložené doručovacie adresy
+   - Obľúbené produkty (srdce pri produkte)
+   - Zmena hesla
+   - Zabudnuté heslo → reset cez email
+
+6. RECENZIE
+   - Prihlásený zákazník môže napísať recenziu na akýkoľvek produkt
+   - Hodnotenie hviezdičkami (1–5) + textový komentár
+   - Recenzia sa zobrazí až po schválení administrátorom
+   - Zákazník dostane email o schválení alebo zamietnutí
+
+7. KONTAKT
+   - Stránka /contact — kontaktný formulár
+   - Po odoslaní príde email vlastníkovi aj zákazníkovi (auto-reply)
+
+8. INFORMAČNÉ STRÁNKY
+   - /o-nas               — O nás
+   - /obchodne-podmienky  — Obchodné podmienky
+   - /ochrana-osobnych-udajov — GDPR / Ochrana osobných údajov
+   - /reklamacie          — Reklamačný poriadok
+
+
+================================================================
+
+
+AKO ADMINISTRÁTOR
+=================
+
+Prihlásenie: https://ourstone.fun/admin
+Prihlasovacie údaje: poskytnuté samostatne
+
+DASHBOARD (/admin/dashboard)
+   - Celkové tržby, počet objednávok, zákazníkov a produktov
+   - Graf tržieb za posledných 30 a 7 dní
+   - Graf počtu objednávok
+   - Top 5 produktov podľa tržieb
+
+PRODUKTY (/admin/products)
+   - Pridanie, úprava a zmazanie produktov
+   - Nastavenie ceny, zľavy, skladu, kategórie, obrázka
+   - Anglický názov a popis (pre SK/EN verziu webu)
+   - Varianty produktu (napr. Veľkosť: S, M, L, XL)
+   - CSV export produktov
+   - Hromadné zmazanie viacerých produktov naraz
+
+OBJEDNÁVKY (/admin/orders)
+   - Prehľad všetkých objednávok
+   - 7 stavov: nová → spracovaná → odoslaná → doručená / zrušená / vrátená / čaká na platbu
+   - Interné poznámky ku každej objednávke
+   - Ručné vytvorenie objednávky
+   - Tlač HTML faktúry
+
+ZÁKAZNÍCI (/admin/customers)
+   - Zoznam všetkých zákazníkov
+   - Triedenie podľa mena, počtu objednávok, útraty, dátumu registrácie
+   - Filter: aktívni / blokovaní
+   - Blokovanie zákazníka (zablokovaný sa nemôže prihlásiť)
+   - Detail zákazníka s históriou všetkých jeho objednávok
+
+RECENZIE (/admin/reviews)
+   - Zoznam všetkých recenzií zákazníkov
+   - Filter: čakajúce / schválené / zamietnuté
+   - Badge s počtom recenzií čakajúcich na schválenie
+   - Schváliť → recenzia sa zobrazí na webe, zákazník dostane email
+   - Zamietnuť → recenzia sa nezobrazí, zákazník dostane email
+
+KUPÓNY (/admin/coupons)
+   - Tvorba zľavových kódov
+   - Typy: percentuálna zľava / fixná € zľava / doprava zadarmo
+   - Nastavenie: minimálna výška objednávky, maximálny počet použití, dátum expirácie
+   - Aktivácia / deaktivácia kupónu
+   - Počítadlo koľkokrát bol kupón použitý
+
+PLATBY (/admin/payments)
+   - Prehľad posledných 50 Stripe platieb
+   - Filter podľa stavu platby
+   - Zostatok na Stripe účte (dostupný + čakajúci)
+
+ADMINISTRÁTORI (/admin/admins)
+   - Zoznam všetkých adminov
+   - Vytvorenie nového admin účtu s rolou:
+     · editor   — správa produktov
+     · support  — objednávky, zákazníci, recenzie
+     · admin    — plný prístup
+     · super_admin — plný prístup + správa adminov
+
+NASTAVENIA (/admin/settings)
+   - Profil admina (zmena mena a hesla)
+   - Informácie o obchode (názov, IČO, adresa, DPH %)
+   - Emailové nastavenia (odosielateľ, predmet emailov, päta)
+
+
+================================================================
+
+
+EMAILOVÉ NOTIFIKÁCIE (automatické)
+===================================
+
+   Zákazník dostane email keď:
+   ✓ Dokončí objednávku (potvrdenie objednávky)
+   ✓ Požiada o reset hesla (odkaz na obnovenie)
+   ✓ Odošle správu cez kontaktný formulár (auto-reply)
+   ✓ Jeho recenzia bola schválená alebo zamietnutá
+
+   Admin dostane email keď:
+   ✓ Zákazník odošle novú objednávku
+   ✓ Zákazník odošle správu cez kontaktný formulár
+   ✓ Zákazník napíše novú recenziu (čaká na schválenie)
+
+
+================================================================
+
+
+TECHNICKÉ POZNÁMKY PRE PREZENTÁCIU
+====================================
+
+   - Stripe je v testovacom režime — reálne platby sa neúčtujú
+   - Testovacia karta: 4242 4242 4242 4242 | exp: 12/28 | CVV: 123
+   - Web funguje v SK aj EN jazyku (prepínač v headeri)
+   - Dark mode / Light mode (prepínač v headeri)
+   - Web je plne responzívny — funguje na mobile aj desktope
+   - Na mobile je spodná navigačná lišta (pre prihlásených zákazníkov)
+
+================================================================

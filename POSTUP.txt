@@ -1,0 +1,363 @@
+================================================================
+  Postup vytvorenia e-commerce projektu (Next.js + Prisma)
+================================================================
+
+Tento dokument popisuje odporúčaný postup ak chceš vytvoriť
+podobný projekt ako OurStone od nuly.
+
+================================================================
+
+FÁZA 1 — ZÁKLAD (deň 1–2)
+--------------------------
+Toto musí byť hotové skôr ako čokoľvek iné.
+Bez tohto nič iné nefunguje.
+
+  1. Vytvorenie Next.js projektu
+     npx create-next-app@latest nazov-projektu
+     - TypeScript: áno
+     - Tailwind CSS: áno
+     - App Router: áno
+
+  2. Databáza — Neon PostgreSQL
+     - Zaregistrovať sa na neon.tech
+     - Vytvoriť nový projekt a databázu
+     - Skopírovať DATABASE_URL do .env
+
+  3. Prisma ORM
+     npm install prisma @prisma/adapter-pg pg
+     npx prisma init
+     - Nastaviť adapter v prisma.config.ts
+     - Vytvoriť základný User model v schema.prisma
+     npx prisma db push
+
+  4. NextAuth.js v5 — autentifikácia
+     npm install next-auth bcryptjs
+     - Konfigurácia v src/lib/auth.ts
+     - Credentials provider (email + heslo)
+     - JWT stratégia s rolami
+     - Route handler: src/app/api/auth/[...nextauth]/route.ts
+
+  5. Základné .env premenné
+     DATABASE_URL=
+     AUTH_SECRET=
+     AUTH_URL=
+
+  Výsledok fázy 1:
+  ✓ Databáza beží
+  ✓ Registrácia a prihlásenie funguje
+  ✓ Session s rolou je dostupná
+
+================================================================
+
+FÁZA 2 — DATABÁZOVÉ MODELY (deň 2–3)
+--------------------------------------
+Navrhnúť a pushnúť všetky modely naraz.
+Neskoršie zmeny schémy sú nákladnejšie.
+
+  Odporúčané modely pre e-shop:
+
+  User          - email, heslo (bcrypt), meno, telefón, rola, blocked
+  Address       - ulica, mesto, PSČ, väzba na User
+  Product       - názov, popis, cena, obrázok, kategória, sklad, zľava
+  Order         - zákazník, adresa, suma, stav, dátum
+  OrderItem     - názov, cena, množstvo, väzba na Order
+  Favorite      - väzba User ↔ Product
+  Coupon        - kód, typ (%, fixné, doprava), hodnota, limity
+  Setting       - key-value úložisko (názov obchodu, DPH, email...)
+  PasswordResetToken - token, expiracia
+  LoginAttempt  - brute-force ochrana (email+IP, lockedUntil)
+
+  Voliteľné (pridať neskôr):
+  Review        - recenzie produktov (pending/approved/rejected)
+  AdminSession  - sledovanie prihlásení adminov
+  AdminLog      - audit log admin akcií
+  PageView      - vlastná analytika návštevnosti
+  Page          - CMS stránky (o nás, podmienky...)
+
+  npx prisma db push
+  npx prisma generate
+
+================================================================
+
+FÁZA 3 — ZÁKAZNÍCKA ČASŤ (deň 3–5)
+-------------------------------------
+Verejná časť webu — to čo vidí zákazník.
+
+  3.1 Zoznam produktov (/)
+      - Načítanie z DB
+      - Filter podľa kategórie
+      - Karta produktu s cenou a zľavou
+
+  3.2 Detail produktu (/products/[id])
+      - Popis, obrázok, cena
+      - Tlačidlo "Pridať do košíka"
+
+  3.3 Košík (/cart)
+      - Uložiť do localStorage
+      - Pridávanie, odoberanie, množstvo
+      - Súčet
+
+  3.4 Registrácia a prihlásenie
+      - /register — vytvorenie účtu
+      - /login — prihlásenie cez NextAuth
+
+  3.5 Zákaznícky účet (/account)
+      - Profil (meno, email, telefón)
+      - História objednávok
+      - Uložené adresy
+      - Obľúbené produkty
+
+  Potrebné API routes:
+  /api/products                GET
+  /api/user/register           POST
+  /api/user/profile            GET/PUT
+  /api/user/addresses          GET/POST/DELETE
+  /api/user/orders             GET/POST
+  /api/user/favorites          GET/POST
+
+================================================================
+
+FÁZA 4 — PLATBY (deň 5–6)
+---------------------------
+Bez platobnej brány nie je e-shop kompletný.
+
+  4.1 Stripe účet
+      - Zaregistrovať sa na stripe.com
+      - Získať NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY a STRIPE_SECRET_KEY
+
+  4.2 Checkout (/checkout)
+      - Krok 1: Kontaktné + doručovacie údaje
+      - Krok 2: Platba kartou (CardElement)
+      - Vytvorenie PaymentIntent na serveri
+      - Po úspešnej platbe: uložiť objednávku do DB
+
+  4.3 Stripe webhooky
+      - Endpoint: /api/webhooks/stripe
+      - Event payment_intent.succeeded → aktualizovať stav objednávky
+      - Validácia podpisu (STRIPE_WEBHOOK_SECRET)
+
+  .env pridať:
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+  STRIPE_SECRET_KEY=
+  STRIPE_WEBHOOK_SECRET=
+
+================================================================
+
+FÁZA 5 — ADMIN PANEL (deň 6–9)
+--------------------------------
+Správa celého obchodu.
+
+  5.1 Admin prihlásenie (/admin)
+      - Vlastný layout so sidebarom
+      - Kontrola role (admin/super_admin)
+      - AdminAuthContext s can() helperom
+
+  5.2 Dashboard (/admin/dashboard)
+      - Štatistiky (objednávky, tržby, zákazníci)
+      - Graf tržieb (Recharts)
+
+  5.3 Produkty (/admin/products)
+      - Zoznam, pridanie, úprava, zmazanie
+      - CSV export
+      - Hromadné zmazanie
+
+  5.4 Objednávky (/admin/orders)
+      - Zoznam s filtrami
+      - Zmena stavu (7 stavov)
+      - Interné poznámky
+      - Tlač faktúry
+
+  5.5 Zákazníci (/admin/customers)
+      - Zoznam, vyhľadávanie
+      - Blokovanie/odblokovanie
+      - Detail s históriou objednávok
+
+  5.6 Kupóny (/admin/coupons)
+      - CRUD kupónov
+      - Typy: %, fixné, doprava zadarmo
+      - Limity, expirácia, počítadlo použití
+
+  5.7 Nastavenia (/admin/settings)
+      - Profil admina (meno, email, heslo)
+      - Info o obchode (IČO, DPH, adresa)
+      - Email nastavenia
+
+  Roly adminov:
+  super_admin  - všetko + správa adminov
+  admin        - všetko
+  editor       - len produkty
+  support      - objednávky + zákazníci
+
+================================================================
+
+FÁZA 6 — EMAIL NOTIFIKÁCIE (deň 9–10)
+---------------------------------------
+Zákazníci a admin dostávajú emaily.
+
+  6.1 Resend účet
+      - Zaregistrovať sa na resend.com
+      - Overiť vlastnú doménu (DNS záznamy)
+      - Získať RESEND_API_KEY
+
+  6.2 DNS záznamy na hostingu (napr. Websupport)
+      - DKIM TXT záznam
+      - MX záznam
+      - SPF TXT záznam
+
+  6.3 Emaily ktoré treba implementovať
+      - Potvrdenie objednávky → zákazníkovi
+      - Nová objednávka → adminovi
+      - Reset hesla → zákazníkovi
+      - Kontaktný formulár → adminovi + auto-reply
+      - Nová registrácia → super adminovi (voliteľné)
+
+  .env pridať:
+  RESEND_API_KEY=
+
+================================================================
+
+FÁZA 7 — POKROČILÉ FUNKCIE (deň 10–14)
+----------------------------------------
+Tieto funkcie pridaj keď základná verzia funguje.
+
+  7.1 Recenzný systém
+      - Zákazník podá recenziu
+      - Admin schváli/zamietne
+      - Email zákazníkovi o výsledku
+
+  7.2 Viacjazyčnosť (SK/EN)
+      - LanguageContext s t() helperom
+      - Slovníky v src/lib/translations.ts
+      - Prepínač jazyka v headeri
+      - EN polia pre produkty (nameEn, descriptionEn)
+
+  7.3 Kupóny v checkoutе
+      - Pole na zadanie kódu
+      - Validácia (active, expiracia, minOrder, maxUses)
+      - Zobrazenie zľavy v súhrne
+
+  7.4 Brute-force ochrana
+      - LoginAttempt tabuľka
+      - Max 5 pokusov → 15 min zámok
+
+  7.5 Dark mode
+      - ThemeContext s localStorage
+      - CSS premenné pre farby
+
+  7.6 PWA (Progressive Web App)
+      - public/manifest.json
+      - meta tagy v layout.tsx
+
+================================================================
+
+FÁZA 8 — ANALYTIKA A MONITORING (deň 14–16)
+---------------------------------------------
+Sledovanie čo sa deje na webe.
+
+  8.1 Vlastná analytika (bez Google Analytics)
+      - PageView model v Prisma
+      - AnalyticsTracker komponent (usePathname)
+      - Filtrovanie botov a adminov
+      - Filter vlastnej IP adresy
+      - Admin stránka s grafmi
+
+  8.2 Admin audit log
+      - AdminLog model
+      - logAdminAction() helper
+      - Logovanie v každej admin API route
+      - Konkrétne detaily: čo sa zmenilo, z akej na akú hodnotu
+
+  8.3 Session tracking adminov
+      - AdminSession model
+      - Záznam pri prihlásení/odhlásení
+      - IP adresa, prehliadač, dĺžka relácie
+
+================================================================
+
+FÁZA 9 — NASADENIE (deň 16–17)
+--------------------------------
+
+  9.1 Vercel účet
+      - Zaregistrovať sa na vercel.com
+      - Pripojiť GitHub repozitár ALEBO použiť CLI
+
+  9.2 Environment variables na Verceli
+      - Pridať všetky .env premenné cez Vercel dashboard
+      - DATABASE_URL, AUTH_SECRET, AUTH_URL,
+        RESEND_API_KEY, STRIPE_SECRET_KEY,
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+        STRIPE_WEBHOOK_SECRET
+
+  9.3 Vlastná doména
+      - Kúpiť doménu (napr. Websupport, Namecheap)
+      - Pridať doménu v Vercel dashboard
+      - Nastaviť DNS záznamy:
+        A záznam → 76.76.21.21
+        CNAME www → cname.vercel-dns.com
+
+  9.4 Deploy
+      npm install -g vercel
+      npx vercel --prod --yes
+
+  9.5 Po nasadení
+      - Nastaviť AUTH_URL na finálnu doménu
+      - Nastaviť Stripe webhook na finálnu URL
+      - Otestovať platbu testovacou kartou
+
+================================================================
+
+TECHNOLOGICKÝ STACK (odporúčaný)
+----------------------------------
+
+  Framework:       Next.js 16 (App Router)
+  Jazyk:           TypeScript
+  Štýlovanie:      Tailwind CSS v4
+  Databáza:        Neon PostgreSQL (zadarmo tier dostupný)
+  ORM:             Prisma v7
+  Autentifikácia:  NextAuth.js v5
+  Platby:          Stripe
+  Email:           Resend
+  Hosting:         Vercel
+  Ikony:           Lucide React
+  Grafy:           Recharts
+
+================================================================
+
+ODPORÚČANÉ PORADIE VÝVOJA
+--------------------------
+
+  Týždeň 1:  Fázy 1–4 (základ + platby)
+  Týždeň 2:  Fáza 5 (admin panel)
+  Týždeň 3:  Fázy 6–7 (emaily + pokročilé funkcie)
+  Týždeň 4:  Fázy 8–9 (analytika + nasadenie)
+
+  Kľúčové pravidlo: Najprv základ, potom vylepšenia.
+  Databázové modely navrhnúť čo najskôr — zmeny neskôr
+  sú časovo náročné.
+
+================================================================
+
+ČASTÉ CHYBY KTORÝM SA VYHNÚŤ
+------------------------------
+
+  ✗ Nezačínaj s UI kým nemáš databázu a auth
+  ✗ Nerobil DB migrácie po jednom poli — navrhnúť celú schému
+  ✗ Nezabudni na NEXT_PUBLIC_ prefix pre klientské premenné
+  ✗ Nepush DATABASE_URL a API kľúče do GitHubu (.gitignore)
+  ✗ Nezabudni npx prisma generate po každej zmene schémy
+  ✗ Neskúšaj Stripe webhooky lokálne bez Stripe CLI
+  ✗ Nezabudni nastaviť AUTH_URL na produkčnú doménu
+
+================================================================
+
+PRÍKAZY KTORÉ BUDEŠ POUŽÍVAŤ NAJČASTEJŠIE
+-------------------------------------------
+
+  npx prisma db push          - synchronizácia schémy s DB
+  npx prisma generate         - regenerácia Prisma klienta
+  npx prisma studio           - GUI pre databázu (lokálne)
+  npx tsx prisma/seed.ts      - naplnenie DB testovacími dátami
+  npm run dev                 - lokálny vývojový server
+  npx vercel --prod --yes     - nasadenie na Vercel
+
+================================================================

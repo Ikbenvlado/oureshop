@@ -1,0 +1,167 @@
+================================================================
+  OurStone — Presentation Guide
+  https://ourstone.fun
+================================================================
+
+
+AS A CUSTOMER
+=============
+
+1. BROWSING PRODUCTS
+   - The home page displays all available products
+   - Filter by category (Electronics, Clothing, Furniture...)
+   - Sort by price, rating or name
+   - Search products by name
+   - Switch language SK / EN (button in the top right corner)
+
+2. PRODUCT DETAIL
+   - Click on any product to open its detail page
+   - Product photo with zoom option (click the image)
+   - Description, rating, availability, discount
+   - "Add to cart" button
+   - Related products from the same category
+   - Customer reviews (approved only)
+   - Form to write your own review (requires login)
+
+3. CART
+   - Added products appear in the mini cart (icon in the top right)
+   - The /cart page shows the full cart
+   - Change quantity or remove products
+   - Shows subtotal, shipping cost and total
+   - Free shipping above a certain order value
+
+4. CHECKOUT
+   - Step 1: Enter your name, email, phone and delivery address
+   - Optionally apply a discount coupon code
+   - Step 2: Pay by card via Stripe
+   - Test card: 4242 4242 4242 4242 | exp: 12/28 | CVV: 123
+   - After payment you receive a confirmation email
+
+5. CUSTOMER ACCOUNT (/account)
+   - Registration and login
+   - Edit profile (name, email, phone)
+   - Order history
+   - Saved delivery addresses
+   - Favorite products (heart icon on product cards)
+   - Change password
+   - Forgot password → reset via email
+
+6. REVIEWS
+   - A logged-in customer can write a review for any product
+   - Star rating (1–5) + text comment
+   - The review is only shown after admin approval
+   - Customer receives an email about approval or rejection
+
+7. CONTACT
+   - Page /contact — contact form
+   - After submission, an email is sent to the owner and an auto-reply to the customer
+
+8. INFORMATION PAGES
+   - /o-nas                        — About Us
+   - /obchodne-podmienky           — Terms & Conditions
+   - /ochrana-osobnych-udajov      — Privacy Policy (GDPR)
+   - /reklamacie                   — Returns & Complaints
+
+
+================================================================
+
+
+AS AN ADMINISTRATOR
+===================
+
+Login: https://ourstone.fun/admin
+Login credentials: provided separately
+
+DASHBOARD (/admin/dashboard)
+   - Total revenue, number of orders, customers and products
+   - Revenue chart for the last 30 and 7 days
+   - Order count chart
+   - Top 5 products by revenue
+
+PRODUCTS (/admin/products)
+   - Add, edit and delete products
+   - Set price, discount, stock, category, image URL
+   - English name and description (for the EN version of the site)
+   - Product variants (e.g. Size: S, M, L, XL)
+   - CSV export of products
+   - Bulk delete multiple products at once
+
+ORDERS (/admin/orders)
+   - Overview of all orders
+   - 7 statuses: new → processing → shipped → delivered / cancelled / returned / awaiting payment
+   - Internal notes on each order
+   - Manual order creation
+   - Print HTML invoice
+
+CUSTOMERS (/admin/customers)
+   - List of all customers
+   - Sort by name, order count, total spent, registration date
+   - Filter: active / blocked
+   - Block a customer (blocked users cannot log in)
+   - Customer detail with full order history
+
+REVIEWS (/admin/reviews)
+   - List of all customer reviews
+   - Filter: pending / approved / rejected
+   - Badge showing the number of reviews awaiting approval
+   - Approve → review appears on the site, customer receives an email
+   - Reject → review is not shown, customer receives an email
+
+COUPONS (/admin/coupons)
+   - Create discount codes
+   - Types: percentage discount / fixed € discount / free shipping
+   - Settings: minimum order value, maximum uses, expiry date
+   - Activate / deactivate a coupon
+   - Counter showing how many times a coupon has been used
+
+PAYMENTS (/admin/payments)
+   - Overview of the last 50 Stripe payments
+   - Filter by payment status
+   - Stripe account balance (available + pending)
+
+ADMINISTRATORS (/admin/admins)
+   - List of all admin accounts
+   - Create a new admin account with a role:
+     · editor      — product management
+     · support     — orders, customers, reviews
+     · admin       — full access
+     · super_admin — full access + admin management
+
+SETTINGS (/admin/settings)
+   - Admin profile (change name and password)
+   - Store information (name, company ID, address, VAT %)
+   - Email settings (sender name, email subjects, footer)
+
+
+================================================================
+
+
+EMAIL NOTIFICATIONS (automatic)
+=================================
+
+   Customer receives an email when:
+   ✓ They complete an order (order confirmation)
+   ✓ They request a password reset (reset link)
+   ✓ They submit a message via the contact form (auto-reply)
+   ✓ Their review has been approved or rejected
+
+   Admin receives an email when:
+   ✓ A customer places a new order
+   ✓ A customer submits a message via the contact form
+   ✓ A customer writes a new review (awaiting approval)
+
+
+================================================================
+
+
+TECHNICAL NOTES FOR THE PRESENTATION
+======================================
+
+   - Stripe is in test mode — no real payments are charged
+   - Test card: 4242 4242 4242 4242 | exp: 12/28 | CVV: 123
+   - The site works in both SK and EN languages (switcher in the header)
+   - Dark mode / Light mode (switcher in the header)
+   - Fully responsive — works on mobile and desktop
+   - Mobile bottom navigation bar (for logged-in customers)
+
+================================================================

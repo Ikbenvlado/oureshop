@@ -1,0 +1,523 @@
+================================================================
+  OurStone — Popis projektu
+================================================================
+
+Čo je to za projekt
+--------------------
+OurStone je slovenský online obchod — e-commerce webová aplikácia
+s plnohodnotným zákazníckym rozhraním aj admin panelom.
+
+URL: https://ourstone.fun
+
+================================================================
+
+Technológie
+-----------
+Framework:        Next.js 16 (App Router, Turbopack)
+Jazyk:            TypeScript
+Štýlovanie:       Tailwind CSS v4
+Databáza:         Neon PostgreSQL (serverless)
+ORM:              Prisma v7 (s @prisma/adapter-pg)
+Autentifikácia:   NextAuth.js v5 (Credentials provider, JWT sessions)
+Platby:           Stripe (CardElement, confirmCardPayment)
+Grafy:            Recharts (AreaChart, BarChart)
+Hosting:          Vercel
+Email:            Resend (vlastná doména ourstone.fun)
+Ikony:            Lucide React
+Font:             Geist (Google Fonts)
+
+================================================================
+
+Štruktúra stránok
+-----------------
+
+VEREJNÉ STRÁNKY (bez prihlásenia)
+  /                   Hlavná stránka — zoznam produktov s filtrom
+  /products/[id]      Detail produktu, recenzie, súvisiace produkty
+  /cart               Košík — pridávanie/odoberanie produktov
+  /checkout           Dokončenie objednávky — detaily + Stripe platba kartou
+  /contact            Kontaktný formulár (meno, email, správa)
+
+AUTH STRÁNKY (bez navbaru)
+  /login              Prihlásenie zákazníka
+  /register           Registrácia
+  /forgot-password    Zaslanie reset linku na email
+  /reset-password     Nastavenie nového hesla cez token z emailu
+  /password-changed   Potvrdenie úspešnej zmeny hesla
+
+ZÁKAZNÍCKA ZÓNA
+  /account            Zákaznícky účet — záložky:
+    - Profil          Úprava mena, emailu, telefónu
+    - Objednávky      História objednávok (slide-up panel na mobile)
+    - Adresy          Uložené doručovacie adresy (pridanie, zmazanie)
+    - Obľúbené        Zapáčené produkty
+
+ADMIN PANEL (/admin/*, bez navbaru, sidebar navigácia)
+  /admin              Prihlásenie admina
+  /admin/dashboard    Štatistiky + grafikon tržieb + top produkty
+  /admin/products     Správa produktov (CRUD, CSV export, hromadné zmazanie)
+  /admin/orders       Objednávky — 7 stavov, poznámky, ručné vytvorenie, tlač faktúry
+  /admin/customers    Zákazníci — triedenie, filter, blokovanie, história objednávok
+  /admin/coupons      Správa kupónov (%, fixná zľava, doprava zadarmo)
+  /admin/payments     Prehľad Stripe platieb + zostatok
+  /admin/reviews      Recenzie — schvaľovanie/zamietanie, filter, email notifikácie
+  /admin/analytics    Vlastná analytika — návštevnosť, grafy, top stránky, zariadenia
+  /admin/admins       Zoznam administrátorov, úprava mena (len super_admin)
+  /admin/settings     Záložky: Profil, Aktivita (super_admin), Používatelia (super_admin),
+                               Obchod, E-mail
+
+STATICKÉ STRÁNKY
+  /o-nas              O nás
+  /obchodne-podmienky Obchodné podmienky
+  /ochrana-osobnych-udajov  Ochrana osobných údajov
+  /reklamacie         Reklamácie
+
+================================================================
+
+Databáza (Neon PostgreSQL + Prisma)
+------------------------------------
+15 modelov v Prisma schéme (prisma/schema.prisma):
+
+  User                 Používateľ (email, bcrypt hash, meno, rola, blocked)
+  Address              Doručovacie adresy zákazníkov
+  Product              Produkty (názov, cena, obrázok, kategória, sklad, zľava,
+                       varianty, nameEn, descriptionEn)
+  Review               Recenzie (zákazník, produkt, hodnotenie 1–5, text,
+                       stav pending/approved/rejected)
+  Order                Objednávky (zákazník, adresa, suma, stav, dátum, poznámky)
+  OrderItem            Položky objednávky (názov, cena, množstvo)
+  Favorite             Obľúbené produkty používateľa
+  PasswordResetToken   Tokeny na obnovenie hesla (1h expirácia)
+  LoginAttempt         Sledovanie brute-force pokusov (email+ip kľúč, lockedUntil)
+  Coupon               Zľavové kupóny (%, fixné, doprava; usedCount, maxUses, expiresAt)
+  Setting              Key-value úložisko nastavení obchodu
+  Page                 CMS stránky (slug, title, content)
+  AdminSession         Záznamy prihlásení adminov (ip, userAgent, loginAt, logoutAt)
+  AdminLog             Audit log akcií adminov (userId, email, action, entity, detail)
+  PageView             Záznamy návštev webu (path, referrer, ip, userAgent)
+
+Prisma klient: src/lib/prisma.ts (singleton s PrismaPg adaptérom)
+Schéma push: npx prisma db push
+Seed skript: prisma/seed.ts (10 produktov + super_admin účet)
+
+================================================================
+
+Autentifikácia (NextAuth.js v5)
+--------------------------------
+Konfigurácia:  src/lib/auth.ts
+Provider:      Credentials (email + heslo, bcrypt porovnanie)
+Session:       JWT stratégia (rola v tokene)
+Route handler: src/app/api/auth/[...nextauth]/route.ts
+TypeScript:    src/types/next-auth.d.ts (roly v Session a JWT)
+
+Roly: customer, editor, support, admin, super_admin
+
+Oprávnenia podľa roly (src/lib/permissions.ts):
+  super_admin  všetko (vrátane analytiky a správy používateľov)
+  admin        všetko (vrátane analytiky)
+  editor       dashboard, produkty
+  support      dashboard, objednávky, zákazníci, recenzie
+
+Dva samostatné React kontexty:
+  - UserAuthContext    pre zákazníkov (useSession + signIn/signOut)
+  - AdminAuthContext   pre adminov (useSession + kontrola role + can() helper)
+
+Ochrana proti brute-force (src/lib/auth.ts + LoginAttempt tabuľka):
+  - Max 5 neúspešných pokusov na kombináciu email+IP
+  - Po 5 zlyhaniach: zámok na 15 minút (lockedUntil)
+  - Po úspešnom prihlásení: záznamy sa vymažú
+
+Zabudnuté heslo (custom token-based flow):
+  1. Zákazník zadá email na /forgot-password
+  2. API vytvorí token + pošle email cez Resend
+  3. Klikne na link → /reset-password?token=xxx
+  4. API overí token + nastaví nové bcrypt heslo
+  5. Presmerovaný na /password-changed
+
+================================================================
+
+Platby — Stripe
+---------------
+Režim:         Test mode (acct_1S4j3ZAFVtb5tsxW)
+Element:       CardElement (hidePostalCode: true)
+Flow:          2-krokový checkout:
+               Krok 1: Kontaktné + doručovacie údaje + kód kupóna
+               Krok 2: Platba kartou cez Stripe
+
+Priebeh platby:
+  1. Zákazník vyplní formulár, prípadne zadá kupón
+  2. Klikne "Pokračovať na platbu" → vytvorí sa PaymentIntent
+  3. Zadá kartu → confirmCardPayment()
+  4. Pri úspechu: uloží objednávku do DB, inkrementuje usedCount kupónu, pošle email
+
+Testovacia karta:  4242 4242 4242 4242 | exp: 12/28 | CVV: 123
+Test modal:        Zobrazí sa pri vstupe na checkout, jazykovo citlivý (SK/EN)
+Odpočítavanie:     20s countdown + kruhový progres po potvrdení objednávky
+
+Stripe Webhooky:
+  Endpoint:    https://ourstone.fun/api/webhooks/stripe
+  Eventy:      payment_intent.succeeded → stav objednávky "zaplatená"
+               payment_intent.payment_failed → stav objednávky "zrušená"
+  Validácia:   stripe.webhooks.constructEvent() s STRIPE_WEBHOOK_SECRET
+
+================================================================
+
+Kupóny
+------
+Admin CRUD:    /admin/coupons
+Typy:
+  percent      % zľava zo súčtu položiek
+  fixed        Fixná € zľava zo súčtu
+  shipping     Zníženie ceny dopravy (napr. doprava zadarmo)
+
+Polia: code, type, value, minOrder, maxUses, usedCount, active, expiresAt
+Checkout:      Pole na kód v Kroku 1, zľava zobrazená v súhrne objednávky
+usedCount:     Inkrementuje sa atomicky cez Prisma increment
+
+================================================================
+
+Email — Resend
+--------------
+Doména:    ourstone.fun (overená DNS záznamy na Websupport)
+Od:        noreply@ourstone.fun
+
+DNS záznamy (pridané na Websupport):
+  - DKIM TXT   resend._domainkey.ourstone.fun
+  - MX         → send.smtp.resend.com
+  - SPF TXT    v=spf1 include:spf.resend.com -all
+
+Odosielané emaily:
+  1. Kontaktný formulár → notifikácia vlastníkovi
+  2. Kontaktný formulár → auto-reply zákazníkovi
+  3. Potvrdenie objednávky → zákazníkovi (dvojjazyčná SK/EN šablóna)
+  4. Nová objednávka → notifikácia vlastníkovi
+  5. Obnovenie hesla → zákazníkovi (link s tokenom)
+  6. Nová recenzia → notifikácia adminovi (link do admin panelu)
+  7. Schválenie recenzie → zákazníkovi
+  8. Zamietnutie recenzie → zákazníkovi
+
+================================================================
+
+Systém recenzií
+---------------
+Tok: prihlásený zákazník → odoslanie → email adminovi → schválenie/zamietnutie → email zákazníkovi
+
+Zákazník:
+  - Odoslie recenziu na stránke produktu (hviezdičky 1–5 + text)
+  - Stav "pending" — nezobrazuje sa verejne kým admin neschváli
+  - Dostane email po schválení alebo zamietnutí
+
+Admin:
+  - /admin/reviews — prehľad všetkých recenzií s filtrom (čakajúce / schválené / zamietnuté)
+  - Badge s počtom čakajúcich recenzií v sidebari
+  - Tlačidlá Schváliť / Zamietnuť → automaticky sa odošle email zákazníkovi
+
+API:
+  GET  /api/reviews?productId=X    schválené recenzie produktu (verejné)
+  POST /api/reviews                odoslanie novej recenzie (prihlásený zákazník) + email adminovi
+  GET  /api/admin/reviews          všetky recenzie (admin)
+  PATCH /api/admin/reviews         schválenie/zamietnutie + email zákazníkovi + audit log
+
+================================================================
+
+Audit log adminov
+-----------------
+Model: AdminLog (src/lib/adminLog.ts — pomocná funkcia logAdminAction())
+
+Zaznamenávané akcie:
+  - Produkty:    create / update / delete
+  - Objednávky:  create / update (stav) / note
+  - Zákazníci:   block / unblock
+  - Kupóny:      create / update / toggle / delete
+  - Recenzie:    approve / reject
+  - Admini:      create (nový účet)
+
+Zobrazenie:
+  - /admin/settings → záložka Aktivita (len super_admin)
+  - Podzáložka "Audit log" — tabuľka: čas, admin email, akcia (farebný badge), entita, detail
+  - Podzáložka "Prihlásenia" — história sessions (meno, IP, zariadenie, trvanie)
+  - Super admin vidí prihlásenia všetkých adminov
+
+API:
+  GET /api/admin/logs      posledných 200 záznamov (len super_admin)
+  GET /api/admin/sessions  sessions (super_admin vidí všetky, ostatní len vlastné)
+
+================================================================
+
+Admin nastavenia (rozšírené)
+-----------------------------
+Záložka Profil:
+  - Zmena mena (updateAdminName API)
+  - Zmena emailu (overenie aktuálnym heslom + kontrola unikátnosti)
+  - Zmena hesla (overenie starého + bcrypt nový)
+
+Záložka Aktivita (len super_admin):
+  - Audit log všetkých admin akcií (posledných 200)
+  - História prihlásení (meno admina, IP, prehliadač, dĺžka relácie)
+
+Záložka Používatelia (len super_admin):
+  - Vytvorenie nového admina/editora/podpory (email, meno, heslo, rola)
+
+Záložka Obchod:
+  - Názov, IČO, DPH %, adresa, kontaktný email, telefón
+
+Záložka E-mail:
+  - Odosielateľ (From), predmet objednávkového emailu, päta emailu
+
+================================================================
+
+Vlastná analytika
+-----------------
+Sledovanie bez externých služieb (napr. Google Analytics).
+
+Čo sa zaznamenáva (model PageView):
+  - URL stránky (path)
+  - Odkiaľ návštevník prišiel (referrer)
+  - IP adresa (pre unikátnych návštevníkov)
+  - User agent (pre detekciu zariadenia)
+  - Čas návštevy
+
+Filtrovanie:
+  - Admin stránky (/admin/*) sa nezaznamenávajú
+  - Boti (crawler, spider, Facebook, Twitter, Slack...) sa filtrujú
+
+Komponent: src/components/AnalyticsTracker.tsx
+  - "use client", hook usePathname() — zachytáva každú zmenu URL
+  - Volá POST /api/analytics pri každej zmene stránky
+
+Admin stránka /admin/analytics:
+  - 4 stat karty: Dnes / Tento týždeň / Za X dní / Unikátni návštevníci
+  - Stĺpcový graf po dňoch (hover = počet, čistý CSS bez knižníc)
+  - Top 10 najnavštevovanejších stránok s progress barmi
+  - Top 8 zdrojov návštevnosti (doména referrera)
+  - Rozdelenie zariadení: Desktop / Mobil / Tablet (%)
+  - Prepínač rozsahu: 7 / 14 / 30 / 90 dní
+
+API:
+  POST /api/analytics               zaznamenanie návštevy (verejné, bot filter)
+  GET  /api/admin/analytics?range=X agregované štatistiky (len admin/super_admin)
+
+================================================================
+
+Viacjazyčnosť (SK / EN)
+-----------------------
+Prepínač jazyka je v headeri (Globe ikona + 2-písmenový kód).
+Jazyk sa ukladá do localStorage (kľúč: shopsk_lang).
+Predvolený jazyk: slovenčina (sk).
+
+Implementácia:
+  src/context/LanguageContext.tsx
+    - hook useLanguage() → { lang, setLang, t, tCat }
+    - t(key)     prekladá kľúč podľa aktívneho jazyka
+    - tCat(name) prekladá názvy kategórií (SK → EN)
+  src/lib/translations.ts
+    - Dve slovníky: sk{} a en{} s rovnakými kľúčmi
+
+Preklady produktov:
+  Product.nameEn / Product.descriptionEn — voliteľné EN polia v DB
+  ProductCard + product detail zobrazujú nameEn/descriptionEn keď lang=en
+  Fallback na SK ak EN pole nie je vyplnené
+  Admin formulár obsahuje polia "Názov (EN)" a "Popis (EN)"
+
+================================================================
+
+API Routes
+----------
+Verejné:
+  /api/products                    GET zoznam/detail produktov
+  /api/reviews                     GET schválené recenzie / POST odoslanie + email adminovi
+  /api/checkout/apply-coupon       POST overenie kupónu + výška zľavy
+  /api/analytics                   POST zaznamenanie návštevy (bot filter)
+
+Zákaznícke (prihlásení aj hostia):
+  /api/user/register               POST registrácia (bcrypt hash)
+  /api/user/profile                GET/PUT profil
+  /api/user/addresses              GET/POST/DELETE adresy
+  /api/user/orders                 GET/POST objednávky
+  /api/user/favorites              GET/POST obľúbené
+  /api/user/change-password        PUT zmena hesla
+  /api/password-reset/request      POST odoslanie reset emailu
+  /api/password-reset/confirm      POST overenie tokenu + nové heslo
+  /api/checkout/decrement-stock    POST zníženie skladu
+  /api/checkout/create-payment-intent  POST vytvorenie Stripe PaymentIntent
+
+Admin:
+  /api/admin/stats                 GET štatistiky dashboardu + grafy
+  /api/admin/products              GET/POST/PUT/DELETE produkty (+ audit log)
+  /api/admin/orders                GET/POST/PATCH objednávky (+ audit log)
+  /api/admin/customers             GET/PATCH zákazníci — blokovanie (+ audit log)
+  /api/admin/coupons               GET/POST/PATCH/DELETE kupóny (+ audit log)
+  /api/admin/payments              GET Stripe platby + zostatok
+  /api/admin/reviews               GET/PATCH recenzie — schválenie/zamietnutie (+ audit log)
+  /api/admin/admins                GET administrátori
+  /api/admin/create-admin          POST vytvorenie admina (+ audit log)
+  /api/admin/settings              GET/POST nastavenia obchodu
+  /api/admin/profile               GET aktuálny admin (id, meno, email, rola)
+  /api/admin/change-password       POST zmena hesla admina
+  /api/admin/change-email          POST zmena emailu admina
+  /api/admin/update-admin-name     POST zmena mena admina
+  /api/admin/sessions              GET/POST/PATCH admin session tracking
+  /api/admin/logs                  GET audit log (len super_admin, posledných 200)
+  /api/admin/analytics             GET agregovaná analytika webu (admin/super_admin)
+
+Webhooky:
+  /api/webhooks/stripe             POST Stripe webhook (overenie podpisu)
+
+================================================================
+
+Architektúra kódu
+-----------------
+src/
+├── app/
+│   ├── api/                  API routes (viď sekciu vyššie)
+│   ├── admin/                Admin panel + vlastný layout (sidebar)
+│   │   ├── page.tsx          Prihlásenie admina
+│   │   ├── layout.tsx        Sidebar (filtrovaný podľa role)
+│   │   ├── dashboard/        Stat karty + Recharts grafy
+│   │   ├── products/         CRUD + CSV + hromadné zmazanie + varianty + EN polia
+│   │   ├── orders/           7 stavov + poznámky + ručné + tlač faktúry
+│   │   ├── customers/        Triedenie/filter + blokovanie + modal história
+│   │   ├── coupons/          CRUD kupónov
+│   │   ├── payments/         Stripe platby + balance
+│   │   ├── reviews/          Schvaľovanie recenzií + emaily
+│   │   ├── analytics/        Vlastná analytika webu (grafy, top stránky, zariadenia)
+│   │   ├── admins/           Zoznam administrátorov
+│   │   └── settings/         Profil / Aktivita / Používatelia / Obchod / E-mail
+│   ├── account/              Zákaznícky účet
+│   ├── checkout/             2-krokový checkout + Stripe + kupón
+│   ├── cart/                 Košík
+│   ├── contact/              Kontaktný formulár
+│   ├── products/[id]/        Detail produktu + recenzie
+│   ├── login/ register/ forgot-password/ reset-password/ password-changed/
+│
+├── components/
+│   ├── Header.tsx            Navigácia + logo + mobilný avatar
+│   ├── Footer.tsx            Pätička
+│   ├── BottomNav.tsx         Mobilná spodná lišta
+│   ├── CookieBanner.tsx      GDPR cookie súhlas (SK/EN)
+│   ├── ProductCard.tsx       Karta produktu (SK/EN názov)
+│   ├── MiniCart.tsx          Mini košík
+│   └── AnalyticsTracker.tsx  Klient-side tracker návštev (usePathname)
+│
+├── context/
+│   ├── UserAuthContext       Stav zákazníka
+│   ├── AdminAuthContext      Stav admina (rola, session tracking)
+│   ├── FavoritesContext      Obľúbené produkty
+│   ├── CartContext           Košík (localStorage)
+│   ├── ToastContext          Toast notifikácie
+│   ├── ThemeContext          Dark mode
+│   └── LanguageContext       Viacjazyčnosť SK/EN
+│
+├── lib/
+│   ├── prisma.ts             Singleton Prisma klient
+│   ├── auth.ts               NextAuth.js v5 konfigurácia
+│   ├── permissions.ts        Oprávnenia podľa roly
+│   ├── adminLog.ts           Pomocná funkcia logAdminAction()
+│   ├── translations.ts       Slovníky SK/EN
+│   ├── products.ts           Typ Product
+│   └── orders.ts             Typ OrderStatus
+│
+└── types/
+    └── next-auth.d.ts        TypeScript augmentácia rôl
+
+================================================================
+
+Bezpečnosť
+----------
+- Autorizácia na úrovni každej API route (auth() z NextAuth)
+- Zákazník vidí len vlastné dáta (objednávky, adresy, obľúbené)
+- Admin API routes overujú rolu a vracajú 401 pri neautorizovanom prístupe
+- UI sidebaru zobrazuje len povolené položky podľa role
+- super_admin má exkluzívny prístup: správa používateľov, audit log, aktivita
+- Blokovaní zákazníci sa nemôžu prihlásiť
+- Heslá hashované cez bcryptjs (12 rounds)
+- JWT session — žiadne databázové sessions
+- Brute-force ochrana: 5 pokusov → 15 min zámok (email+IP kľúč)
+- Stripe webhook overenie podpisu (constructEvent + STRIPE_WEBHOOK_SECRET)
+- GDPR cookie consent banner (localStorage, SK/EN)
+- Kupóny: overenie active flag, expirácie, maxUses, minOrder
+- Analytika: boti sa filtrujú, admin stránky sa nezaznamenávajú
+
+================================================================
+
+Premenné prostredia (.env)
+---------------------------
+DATABASE_URL                        Neon PostgreSQL connection string
+AUTH_SECRET                         NextAuth.js secret (JWT podpisovanie)
+AUTH_URL                            Base URL (https://ourstone.fun)
+RESEND_API_KEY                      API kľúč Resend (len server-side)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY  Stripe publishable key (klient-side)
+STRIPE_SECRET_KEY                   Stripe secret key (len server-side)
+STRIPE_WEBHOOK_SECRET               Stripe webhook signing secret
+
+================================================================
+
+Mobilné UX
+----------
+BottomNav:     Fixná spodná lišta pre prihlásených zákazníkov (md:hidden)
+               Záložky: Domov, Obľúbené (badge), Košík (badge), Účet
+Avatar:        Mobilný header zobrazuje link na /account
+Panel objednávky: Slide-up animácia na mobile, modal na desktope
+Záložky:       Text skrytý na mobile (len ikona), viditeľný od sm+
+
+================================================================
+
+Funkcie admin panelu (súhrn)
+-----------------------------
+Dashboard:     4 stat karty, revenue AreaChart, order count BarChart,
+               top 5 produktov, priemerná hodnota objednávky
+Produkty:      CRUD, obrázok URL, kategória, cena, zľava, sklad, in-stock toggle,
+               varianty (JSON), CSV export, hromadné zmazanie, EN polia
+Objednávky:    7 stavov, interné poznámky, ručné vytvorenie, tlač faktúry
+Zákazníci:     Triedenie/filter, blokovanie, detail modal s históriou objednávok
+Kupóny:        %, fixné €, doprava zadarmo; limity, expirácia, počítadlo použití
+Platby:        Stripe payment intents (posledných 50), filter stavu, zostatok
+Recenzie:      Filter čakajúce/schválené/zamietnuté, schvaľovanie + emaily, badge
+Analytika:     Vlastná — denný graf, top stránky, zdroje, zariadenia, prepínač rozsahu
+Nastavenia:    Profil (meno/email/heslo) | Aktivita: audit log + prihlásenia (super_admin)
+               Používatelia: pridanie admina (super_admin) | Obchod | E-mail
+Roly:          editor = produkty; support = objednávky+zákazníci+recenzie;
+               admin = plný prístup + analytika;
+               super_admin = plný + správa používateľov + audit log
+
+================================================================
+
+Nasadenie
+---------
+Hosting:   Vercel (CLI deploy: npx vercel --prod --yes)
+Doména:    ourstone.fun (+ www.ourstone.fun)
+DNS:       Websupport — A záznam → 76.76.21.21,
+           CNAME www → cname.vercel-dns.com
+SSL:       Automaticky cez Vercel
+
+================================================================
+
+Stav projektu
+-------------
+Dokončené:  Databáza (Neon + Prisma), autentifikácia (NextAuth.js v5),
+            zákaznícky účet, admin panel, reset hesla,
+            UI/UX (dark mode, responzívny), kontaktný formulár,
+            emailové notifikácie (Resend), validácie formulárov,
+            viacjazyčnosť SK/EN, Stripe platby (test mode),
+            systém kupónov, admin roly (editor/support/admin/super_admin),
+            grafy v dashboarde (Recharts), produkty CRUD + CSV + hromadné,
+            objednávky (7 stavov, poznámky, ručné, tlač faktúry),
+            zákazníci (triedenie, filter, blokovanie),
+            prehľad platieb (Stripe API), nastavenia obchodu,
+            mobilné UX (spodná lišta, slide-up),
+            brute-force ochrana (5 pokusov → 15 min zámok),
+            Stripe webhook overenie podpisu,
+            GDPR cookie consent (SK/EN),
+            nasadenie na Vercel + vlastná doména ourstone.fun,
+            preklady produktov (nameEn/descriptionEn) + fallback na SK,
+            systém recenzií (odoslanie → schválenie → emaily),
+            admin session tracking (IP, prehliadač, dĺžka relácie),
+            audit log adminov (logAdminAction, AdminLog tabuľka),
+            zmena hesla a emailu v nastaveniach admina,
+            záložka Aktivita (super_admin only) — audit log + prihlásenia,
+            vlastná analytika webu (PageView, graf, top stránky, zariadenia)
+
+Plánované:  Vlastné obrázky produktov (nahradenie Unsplash),
+            emailové šablóny reflektujúce nastavenia obchodu
+
+================================================================

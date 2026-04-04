@@ -1,0 +1,525 @@
+================================================================
+  OurStone — Project Description
+================================================================
+
+About the project
+-----------------
+OurStone is a Slovak online store — a full-featured e-commerce web
+application with a customer-facing interface and an admin panel.
+
+URL: https://ourstone.fun
+
+================================================================
+
+Technologies
+------------
+Framework:        Next.js 16 (App Router, Turbopack)
+Language:         TypeScript
+Styling:          Tailwind CSS v4
+Database:         Neon PostgreSQL (serverless)
+ORM:              Prisma v7 (with @prisma/adapter-pg)
+Authentication:   NextAuth.js v5 (Credentials provider, JWT sessions)
+Payments:         Stripe (CardElement, confirmCardPayment)
+Charts:           Recharts (AreaChart, BarChart)
+Hosting:          Vercel
+Email:            Resend (custom domain ourstone.fun)
+Icons:            Lucide React
+Font:             Geist (Google Fonts)
+
+================================================================
+
+Page structure
+--------------
+
+PUBLIC PAGES (no login required)
+  /                   Home page — product list with filters
+  /products/[id]      Product detail, reviews, related products
+  /cart               Cart — add/remove products
+  /checkout           Order completion — details + Stripe card payment
+  /contact            Contact form (name, email, message)
+
+AUTH PAGES (no navbar)
+  /login              Customer login
+  /register           Registration
+  /forgot-password    Send reset link via email
+  /reset-password     Set new password via token from email
+  /password-changed   Confirmation of successful password change
+
+CUSTOMER ZONE
+  /account            Customer account — tabs:
+    - Profile         Edit name, email, phone
+    - Orders          Order history with item details (slide-up panel on mobile)
+    - Addresses       Saved shipping addresses (add, delete)
+    - Favorites       Liked products
+
+ADMIN PANEL (/admin/*, no navbar, sidebar navigation)
+  /admin              Admin login
+  /admin/dashboard    Statistics + revenue chart + top products
+  /admin/products     Product management (CRUD, CSV export, bulk delete)
+  /admin/orders       Orders — 7 statuses, notes, manual creation, print invoice
+  /admin/customers    Customers — sort/filter, block/unblock, order history modal
+  /admin/coupons      Coupon management (%, fixed, free shipping)
+  /admin/payments     Stripe payment intents overview + balance
+  /admin/reviews      Reviews — approve/reject, filter, email notifications
+  /admin/analytics    Custom analytics — traffic, charts, top pages, devices
+  /admin/admins       Admin list, name editing (super_admin only)
+  /admin/settings     Tabs: Profile, Activity (super_admin), Users (super_admin),
+                            Shop, Email
+
+STATIC PAGES
+  /o-nas              About us
+  /obchodne-podmienky Terms & Conditions
+  /ochrana-osobnych-udajov  Privacy Policy
+  /reklamacie         Returns & Complaints
+
+================================================================
+
+Database (Neon PostgreSQL + Prisma)
+------------------------------------
+15 models in Prisma schema (prisma/schema.prisma):
+
+  User                 User (email, bcrypt hash, name, role, blocked)
+  Address              Customer shipping addresses
+  Product              Products (name, price, image, category, stock, discount,
+                       variants, nameEn, descriptionEn)
+  Review               Reviews (customer, product, rating 1–5, text,
+                       status: pending/approved/rejected)
+  Order                Orders (customer, address, total, status, date, notes)
+  OrderItem            Order items (name, price, quantity)
+  Favorite             User's favorite products
+  PasswordResetToken   Password reset tokens (1h expiration)
+  LoginAttempt         Brute-force tracking (email+ip composite key, lockedUntil)
+  Coupon               Discount coupons (%, fixed, shipping; usedCount, maxUses, expiresAt)
+  Setting              Key-value store for shop settings
+  Page                 CMS pages (slug, title, content)
+  AdminSession         Admin login records (ip, userAgent, loginAt, logoutAt)
+  AdminLog             Admin action audit log (userId, email, action, entity, detail)
+  PageView             Website visit records (path, referrer, ip, userAgent)
+
+Prisma client: src/lib/prisma.ts (singleton with PrismaPg adapter)
+Schema push: npx prisma db push
+Seed script: prisma/seed.ts (10 products + super_admin account)
+
+================================================================
+
+Authentication (NextAuth.js v5)
+--------------------------------
+Configuration: src/lib/auth.ts
+Provider:      Credentials (email + password, bcrypt comparison)
+Session:       JWT strategy (role in token)
+Route handler: src/app/api/auth/[...nextauth]/route.ts
+TypeScript:    src/types/next-auth.d.ts (roles in Session and JWT)
+
+Roles: customer, editor, support, admin, super_admin
+
+Role permissions (src/lib/permissions.ts):
+  super_admin  all features (including analytics and user management)
+  admin        all features (including analytics)
+  editor       dashboard, products
+  support      dashboard, orders, customers, reviews
+
+Two separate React contexts:
+  - UserAuthContext    for customers (useSession + signIn/signOut)
+  - AdminAuthContext   for admins (useSession + role check + can() helper)
+
+Brute-force protection (src/lib/auth.ts + LoginAttempt table):
+  - Max 5 failed attempts per email+IP combination
+  - After 5 failures: account locked for 15 minutes
+  - On successful login: attempt records deleted
+
+Forgot password (custom token-based flow):
+  1. Customer enters email at /forgot-password
+  2. API creates token + sends email via Resend
+  3. Clicks link -> /reset-password?token=xxx
+  4. API verifies token + sets new bcrypt password
+  5. Redirected to /password-changed
+
+================================================================
+
+Payments — Stripe
+-----------------
+Mode:          Test mode (acct_1S4j3ZAFVtb5tsxW)
+Element:       CardElement (hidePostalCode: true)
+Flow:          2-step checkout:
+               Step 1: Contact + shipping details + coupon code
+               Step 2: Stripe card payment
+
+Payment flow:
+  1. User fills form, optionally applies coupon
+  2. Clicks "Continue to payment" -> creates PaymentIntent
+  3. Enters card -> confirmCardPayment()
+  4. On success: saves order to DB, increments coupon usedCount, sends email
+
+Test card:     4242 4242 4242 4242 | exp: 12/28 | CVV: 123
+Test modal:    Shown on checkout entry, language-aware (SK/EN)
+Countdown:     20s countdown + circular progress after order confirmation
+
+Stripe Webhooks:
+  Endpoint:    https://ourstone.fun/api/webhooks/stripe
+  Events:      payment_intent.succeeded -> order status "zaplatená"
+               payment_intent.payment_failed -> order status "zrušená"
+  Validation:  stripe.webhooks.constructEvent() with STRIPE_WEBHOOK_SECRET
+
+================================================================
+
+Coupons
+-------
+Admin CRUD:    /admin/coupons
+Types:
+  percent      % discount off subtotal
+  fixed        Fixed € discount off subtotal
+  shipping     Reduces shipping cost (e.g. free shipping)
+
+Fields: code, type, value, minOrder, maxUses, usedCount, active, expiresAt
+Checkout:      Code field in Step 1, discount shown in order summary
+usedCount:     Incremented atomically via Prisma increment
+
+================================================================
+
+Email — Resend
+--------------
+Domain:    ourstone.fun (verified DNS records on Websupport)
+From:      noreply@ourstone.fun
+
+DNS records (added on Websupport):
+  - DKIM TXT   resend._domainkey.ourstone.fun
+  - MX         -> send.smtp.resend.com
+  - SPF TXT    v=spf1 include:spf.resend.com -all
+
+Emails sent:
+  1. Contact form -> notification to owner
+  2. Contact form -> auto-reply to customer
+  3. Order confirmation -> customer (bilingual SK/EN template)
+  4. New order -> notification to owner
+  5. Password reset -> customer (link with token)
+  6. New review -> notification to admin (link to admin panel)
+  7. Review approved -> customer
+  8. Review rejected -> customer
+
+================================================================
+
+Review system
+-------------
+Flow: logged-in customer -> submit -> email to admin -> approve/reject -> email to customer
+
+Customer:
+  - Submits review on product page (1–5 stars + text comment)
+  - Status "pending" — not publicly visible until admin approves
+  - Receives email after approval or rejection
+
+Admin:
+  - /admin/reviews — all reviews with filter (pending / approved / rejected)
+  - Badge showing pending review count in sidebar
+  - Approve / Reject buttons -> automatically sends email to customer
+
+API:
+  GET  /api/reviews?productId=X    approved reviews for a product (public)
+  POST /api/reviews                submit new review (logged-in customer) + email to admin
+  GET  /api/admin/reviews          all reviews (admin)
+  PATCH /api/admin/reviews         approve/reject + email to customer + audit log
+
+================================================================
+
+Admin audit log
+---------------
+Model: AdminLog (helper function logAdminAction() in src/lib/adminLog.ts)
+
+Tracked actions:
+  - Products:    create / update / delete
+  - Orders:      create / update (status) / note
+  - Customers:   block / unblock
+  - Coupons:     create / update / toggle / delete
+  - Reviews:     approve / reject
+  - Admins:      create (new account)
+
+Display:
+  - /admin/settings -> Activity tab (super_admin only)
+  - Sub-tab "Audit log" — table: time, admin email, action (colored badge), entity, detail
+  - Sub-tab "Login history" — sessions table (name, IP, browser, duration)
+  - Super admin sees login history for all admins
+
+API:
+  GET /api/admin/logs      last 200 log entries (super_admin only)
+  GET /api/admin/sessions  sessions (super_admin sees all, others see own only)
+
+================================================================
+
+Admin settings (extended)
+--------------------------
+Profile tab:
+  - Change name (updateAdminName API)
+  - Change email (verified by current password + uniqueness check)
+  - Change password (verify old password + bcrypt new one)
+
+Activity tab (super_admin only):
+  - Audit log of all admin actions (last 200 entries)
+  - Login history (admin name, IP, browser, session duration)
+
+Users tab (super_admin only):
+  - Create new admin/editor/support (email, name, password, role)
+
+Shop tab:
+  - Name, IČO, VAT %, address, contact email, phone
+
+Email tab:
+  - Sender (From), order email subject, email footer
+
+================================================================
+
+Custom analytics
+----------------
+Self-hosted tracking without external services (e.g. Google Analytics).
+
+What is recorded (PageView model):
+  - Page URL (path)
+  - Where visitor came from (referrer)
+  - IP address (for unique visitor counting)
+  - User agent (for device detection)
+  - Visit timestamp
+
+Filtering:
+  - Admin pages (/admin/*) are not tracked
+  - Bots (crawler, spider, Facebook, Twitter, Slack...) are filtered out
+
+Component: src/components/AnalyticsTracker.tsx
+  - "use client", usePathname() hook — captures every URL change
+  - Calls POST /api/analytics on each route change
+
+Admin page /admin/analytics:
+  - 4 stat cards: Today / This week / Last X days / Unique visitors
+  - Daily bar chart (hover = count, pure CSS — no chart library)
+  - Top 10 most visited pages with progress bars
+  - Top 8 traffic sources (referrer domain)
+  - Device breakdown: Desktop / Mobile / Tablet (%)
+  - Range selector: 7 / 14 / 30 / 90 days
+
+API:
+  POST /api/analytics               record visit (public, bot-filtered)
+  GET  /api/admin/analytics?range=X aggregated stats (admin/super_admin only)
+
+================================================================
+
+Internationalization (SK / EN)
+-------------------------------
+Language toggle in header (Globe icon + 2-letter code).
+Language stored in localStorage (key: shopsk_lang).
+Default language: Slovak (sk).
+
+Implementation:
+  src/context/LanguageContext.tsx
+    - hook useLanguage() -> { lang, setLang, t, tCat }
+    - t(key)     translates key by active language
+    - tCat(name) translates category names (SK -> EN)
+  src/lib/translations.ts
+    - Two dictionaries: sk{} and en{} with identical keys
+
+Product translations:
+  Product.nameEn / Product.descriptionEn — optional EN fields in DB
+  ProductCard + product detail show nameEn/descriptionEn when lang=en
+  Falls back to Slovak if EN field is empty
+  Admin form includes "Name (EN)" and "Description (EN)" fields
+
+================================================================
+
+API Routes
+----------
+Public:
+  /api/products                    GET product list/detail
+  /api/reviews                     GET approved reviews / POST submit + email to admin
+  /api/checkout/apply-coupon       POST validate coupon + return discount
+  /api/analytics                   POST record page visit (bot-filtered)
+
+Customer (require login or guest):
+  /api/user/register               POST registration (bcrypt hash)
+  /api/user/profile                GET/PUT profile
+  /api/user/addresses              GET/POST/DELETE addresses
+  /api/user/orders                 GET/POST orders
+  /api/user/favorites              GET/POST favorites
+  /api/user/change-password        PUT change password
+  /api/password-reset/request      POST send reset email
+  /api/password-reset/confirm      POST verify token + new password
+  /api/checkout/decrement-stock    POST stock decrement
+  /api/checkout/create-payment-intent  POST create Stripe PaymentIntent
+
+Admin (require admin role):
+  /api/admin/stats                 GET dashboard statistics + chart data
+  /api/admin/products              GET/POST/PUT/DELETE products (+ audit log)
+  /api/admin/orders                GET/POST/PATCH orders (+ audit log)
+  /api/admin/customers             GET/PATCH customers — block/unblock (+ audit log)
+  /api/admin/coupons               GET/POST/PATCH/DELETE coupons (+ audit log)
+  /api/admin/payments              GET Stripe payment intents + balance
+  /api/admin/reviews               GET/PATCH reviews — approve/reject (+ audit log)
+  /api/admin/admins                GET admin list
+  /api/admin/create-admin          POST create admin account (+ audit log)
+  /api/admin/settings              GET/POST shop settings (key-value)
+  /api/admin/profile               GET current admin (id, name, email, role)
+  /api/admin/change-password       POST change admin password
+  /api/admin/change-email          POST change admin email
+  /api/admin/update-admin-name     POST change admin display name
+  /api/admin/sessions              GET/POST/PATCH admin session tracking
+  /api/admin/logs                  GET audit log (super_admin only, last 200)
+  /api/admin/analytics             GET aggregated website analytics (admin/super_admin)
+
+Webhooks:
+  /api/webhooks/stripe             POST Stripe webhook (signature verified)
+
+================================================================
+
+Code architecture
+-----------------
+src/
+├── app/
+│   ├── api/                  API routes (see section above)
+│   ├── admin/                Admin panel + custom layout (sidebar)
+│   │   ├── page.tsx          Admin login
+│   │   ├── layout.tsx        Sidebar (role-filtered nav)
+│   │   ├── dashboard/        Stats cards + Recharts charts
+│   │   ├── products/         CRUD + CSV + bulk delete + variants + EN fields
+│   │   ├── orders/           7 statuses + notes + manual + invoice print
+│   │   ├── customers/        Sort/filter + block/unblock + order history modal
+│   │   ├── coupons/          Coupon CRUD
+│   │   ├── payments/         Stripe payment intents + balance
+│   │   ├── reviews/          Review moderation + emails
+│   │   ├── analytics/        Custom website analytics (charts, top pages, devices)
+│   │   ├── admins/           Admin list
+│   │   └── settings/         Profile / Activity / Users / Shop / Email
+│   ├── account/              Customer account
+│   ├── checkout/             2-step checkout + Stripe + coupon
+│   ├── cart/                 Cart
+│   ├── contact/              Contact form
+│   ├── products/[id]/        Product detail + reviews
+│   ├── login/ register/ forgot-password/ reset-password/ password-changed/
+│
+├── components/
+│   ├── Header.tsx            Navigation + logo + mobile avatar
+│   ├── Footer.tsx            Footer
+│   ├── BottomNav.tsx         Mobile bottom tab bar
+│   ├── CookieBanner.tsx      GDPR cookie consent (SK/EN)
+│   ├── ProductCard.tsx       Product card (SK/EN name)
+│   ├── MiniCart.tsx          Mini cart
+│   └── AnalyticsTracker.tsx  Client-side visit tracker (usePathname)
+│
+├── context/
+│   ├── UserAuthContext       Customer state
+│   ├── AdminAuthContext      Admin state (role, session tracking)
+│   ├── FavoritesContext      Favorite products
+│   ├── CartContext           Cart (localStorage)
+│   ├── ToastContext          Toast notifications
+│   ├── ThemeContext          Dark mode
+│   └── LanguageContext       Internationalization SK/EN
+│
+├── lib/
+│   ├── prisma.ts             Singleton Prisma client
+│   ├── auth.ts               NextAuth.js v5 configuration
+│   ├── permissions.ts        Role-based permissions (can() helper)
+│   ├── adminLog.ts           logAdminAction() helper function
+│   ├── translations.ts       SK/EN translation dictionaries
+│   ├── products.ts           Product type
+│   └── orders.ts             OrderStatus type (7 statuses)
+│
+└── types/
+    └── next-auth.d.ts        TypeScript role augmentation
+
+================================================================
+
+Security
+--------
+- Authorization at every API route level (auth() from NextAuth)
+- Customers can only access their own data (orders, addresses, favorites)
+- Admin API routes verify role and return 401 for unauthorized access
+- Role-based UI: sidebar shows only permitted items per role
+- super_admin has exclusive access: user management, audit log, activity tab
+- Blocked customers cannot log in (checked in auth.ts)
+- Passwords hashed via bcryptjs (12 rounds)
+- JWT session — no database sessions
+- Brute-force protection: 5 attempts -> 15 min lock (email+IP composite key)
+- Stripe webhook signature validation (constructEvent + STRIPE_WEBHOOK_SECRET)
+- GDPR cookie consent banner (localStorage, SK/EN)
+- Coupon validation: active flag, expiry date, maxUses limit, minOrder threshold
+- Analytics: bots are filtered out, admin pages are not tracked
+- Env variables not exposed to client
+
+================================================================
+
+Environment variables (.env)
+-----------------------------
+DATABASE_URL                        Neon PostgreSQL connection string
+AUTH_SECRET                         NextAuth.js secret (JWT signing)
+AUTH_URL                            App base URL (https://ourstone.fun)
+RESEND_API_KEY                      Resend API key (server-side only)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY  Stripe publishable key (client-side)
+STRIPE_SECRET_KEY                   Stripe secret key (server-side only)
+STRIPE_WEBHOOK_SECRET               Stripe webhook signing secret (server-side only)
+
+================================================================
+
+Mobile UX
+---------
+BottomNav:     Fixed bottom tab bar for logged-in customers (md:hidden)
+               Tabs: Home, Favorites (badge), Cart (badge), Account
+Avatar:        Mobile header shows link to /account
+Order panel:   Slide-up animation on mobile, centered modal on desktop
+Tab labels:    Text hidden on mobile (icon only), visible from sm+
+
+================================================================
+
+Admin features summary
+-----------------------
+Dashboard:     4 stat cards, revenue AreaChart, order count BarChart,
+               top 5 products by revenue, avg order value
+Products:      CRUD, image URL, category, price, discount, stock, in-stock toggle,
+               variants (JSON), CSV export, bulk delete, EN name/description fields
+Orders:        7 statuses, internal notes, manual order creation, print HTML invoice
+Customers:     Sort by name/orders/spent/date, filter active/blocked,
+               block/unblock, detail modal with full order history
+Coupons:       %, fixed €, free shipping; limits, expiry, usage counter
+Payments:      Stripe payment intents (last 50), status filter, balance
+Reviews:       Filter pending/approved/rejected, approve/reject + emails, badge count
+Analytics:     Self-hosted — daily chart, top pages, traffic sources, devices, date range
+Settings:      Profile (name/email/password) | Activity: audit log + sessions (super_admin)
+               Users: add admin account (super_admin) | Shop | Email
+Roles:         editor = products; support = orders+customers+reviews;
+               admin = full access + analytics;
+               super_admin = full + user management + audit log
+
+================================================================
+
+Deployment
+----------
+Hosting:   Vercel (CLI deploy: npx vercel --prod --yes)
+Domain:    ourstone.fun (+ www.ourstone.fun)
+DNS:       Websupport — A record -> 76.76.21.21,
+           CNAME www -> cname.vercel-dns.com
+SSL:       Automatically via Vercel
+
+================================================================
+
+Project status
+--------------
+Completed:  Database (Neon + Prisma), authentication (NextAuth.js v5),
+            customer account, admin panel, password reset flow,
+            UI/UX (dark mode, responsive), contact form,
+            email notifications (Resend), form validations,
+            internationalization SK/EN, Stripe card payments (test mode),
+            coupon system, admin roles (editor/support/admin/super_admin),
+            dashboard charts (Recharts), products CRUD + CSV + bulk delete,
+            orders (7 statuses, notes, manual creation, invoice print),
+            customers (sort, filter, block/unblock),
+            payments overview (Stripe API), shop settings,
+            mobile UX (bottom nav, slide-up panel),
+            brute-force login protection (5 attempts -> 15 min lock),
+            Stripe webhook signature validation,
+            GDPR cookie consent banner (SK/EN),
+            deployment to Vercel + custom domain ourstone.fun,
+            product translations (nameEn/descriptionEn + SK fallback),
+            review system (submit -> admin approval -> email notifications),
+            admin session tracking (IP, browser, session duration),
+            admin audit log (logAdminAction, AdminLog table),
+            admin password and email change in settings,
+            Activity tab (super_admin only) — audit log + login history,
+            custom website analytics (PageView, daily chart, top pages, devices)
+
+Planned:    Custom product images (replacing Unsplash),
+            email templates reflecting shop settings
+
+================================================================
