@@ -21,7 +21,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "OurStone — Slovenský online obchod",
+  title: "OurEshop — Slovenský online obchod",
   description: "Prémiové produkty za skvelé ceny. Rýchle doručenie po celom Slovensku.",
 };
 
@@ -39,7 +39,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="OurStone" />
+        <meta name="apple-mobile-web-app-title" content="OurEshop" />
       </head>
       <body className={`${geist.variable} antialiased min-h-screen`}>
         <SessionProvider>

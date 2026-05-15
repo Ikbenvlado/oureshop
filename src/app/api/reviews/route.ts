@@ -4,8 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const SHOP_NAME = "OurStone";
-const FROM = `${SHOP_NAME} <noreply@ourstone.fun>`;
+
+function h(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
+}
+
+const SHOP_NAME = "OurEshop";
+const FROM = `${SHOP_NAME} <noreply@oureshop.fun>`;
 const OWNER_EMAIL = "vladimirstricko@rocketmail.com";
 
 function adminNotificationHtml(userName: string, productName: string, rating: number, comment: string) {
@@ -30,33 +35,33 @@ function adminNotificationHtml(userName: string, productName: string, rating: nu
               <tr>
                 <td style="padding:10px 14px;background:#f8f4ff;border-radius:8px;margin-bottom:8px;">
                   <p style="margin:0;font-size:11px;color:#9333ea;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Zákazník</p>
-                  <p style="margin:4px 0 0;font-size:15px;color:#1f2937;font-weight:500;">${userName}</p>
+                  <p style="margin:4px 0 0;font-size:15px;color:#1f2937;font-weight:500;">${h(userName)}</p>
                 </td>
               </tr>
               <tr><td style="height:8px;"></td></tr>
               <tr>
                 <td style="padding:10px 14px;background:#f8f4ff;border-radius:8px;">
                   <p style="margin:0;font-size:11px;color:#9333ea;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Produkt</p>
-                  <p style="margin:4px 0 0;font-size:15px;color:#1f2937;font-weight:500;">${productName}</p>
+                  <p style="margin:4px 0 0;font-size:15px;color:#1f2937;font-weight:500;">${h(productName)}</p>
                 </td>
               </tr>
               <tr><td style="height:8px;"></td></tr>
               <tr>
                 <td style="padding:10px 14px;background:#f8f4ff;border-radius:8px;">
                   <p style="margin:0;font-size:11px;color:#9333ea;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Hodnotenie</p>
-                  <p style="margin:4px 0 0;font-size:18px;color:#f59e0b;">${stars}</p>
+                  <p style="margin:4px 0 0;font-size:18px;color:#f59e0b;">${h(stars)}</p>
                 </td>
               </tr>
               <tr><td style="height:8px;"></td></tr>
               <tr>
                 <td style="padding:10px 14px;background:#f8f4ff;border-radius:8px;">
                   <p style="margin:0;font-size:11px;color:#9333ea;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Text recenzie</p>
-                  <p style="margin:4px 0 0;font-size:15px;color:#1f2937;line-height:1.6;white-space:pre-wrap;">${comment}</p>
+                  <p style="margin:4px 0 0;font-size:15px;color:#1f2937;line-height:1.6;white-space:pre-wrap;">${h(comment)}</p>
                 </td>
               </tr>
             </table>
             <div style="margin-top:24px;text-align:center;">
-              <a href="https://ourstone.fun/admin/reviews" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">Spravovať recenzie</a>
+              <a href="https://oureshop.fun/admin/reviews" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">Spravovať recenzie</a>
             </div>
           </td>
         </tr>

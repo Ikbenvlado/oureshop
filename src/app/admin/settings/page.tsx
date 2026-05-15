@@ -31,7 +31,7 @@ export default function AdminSettingsPage() {
   // Current email
   const [currentEmail, setCurrentEmail] = useState("");
   useEffect(() => {
-    fetch("/api/admin/profile").then((r) => r.json()).then((d) => { if (d?.email) setCurrentEmail(d.email); });
+    fetch("/api/admin/profile").then((r) => r.json()).then((d) => { if (d?.email) setCurrentEmail(d.email); }).catch(() => {});
   }, []);
 
   // Change email
@@ -93,9 +93,9 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     if (tab !== "activity") return;
     setSessionsLoading(true);
-    fetch("/api/admin/sessions").then((r) => r.json()).then((d) => { setSessions(d ?? []); setSessionsLoading(false); });
+    fetch("/api/admin/sessions").then((r) => r.json()).then((d) => { setSessions(d ?? []); setSessionsLoading(false); }).catch(() => setSessionsLoading(false));
     setLogsLoading(true);
-    fetch("/api/admin/logs").then((r) => r.json()).then((d) => { setLogs(Array.isArray(d) ? d : []); setLogsLoading(false); });
+    fetch("/api/admin/logs").then((r) => r.json()).then((d) => { setLogs(Array.isArray(d) ? d : []); setLogsLoading(false); }).catch(() => setLogsLoading(false));
   }, [tab]);
 
   useEffect(() => {
@@ -223,7 +223,7 @@ export default function AdminSettingsPage() {
             <form onSubmit={handleEmailChange} className="space-y-4">
               <div>
                 <label className={labelCls}>Nový email</label>
-                <input required type="email" value={newEmailVal} onChange={(e) => setNewEmailVal(e.target.value)} className={inputCls} placeholder="novy@ourstone.fun" />
+                <input required type="email" value={newEmailVal} onChange={(e) => setNewEmailVal(e.target.value)} className={inputCls} placeholder="novy@oureshop.fun" />
               </div>
               <div>
                 <label className={labelCls}>Aktuálne heslo (overenie)</label>
@@ -284,7 +284,7 @@ export default function AdminSettingsPage() {
             </div>
             <div>
               <label className={labelCls}>Email</label>
-              <input required type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className={inputCls} placeholder="admin@ourstone.fun" />
+              <input required type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className={inputCls} placeholder="admin@oureshop.fun" />
             </div>
             <div>
               <label className={labelCls}>Heslo</label>
@@ -461,7 +461,7 @@ export default function AdminSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className={labelCls}>Názov obchodu</label>
-                <input value={shop.shop_name} onChange={(e) => setShop({ ...shop, shop_name: e.target.value })} className={inputCls} placeholder="OurStone" />
+                <input value={shop.shop_name} onChange={(e) => setShop({ ...shop, shop_name: e.target.value })} className={inputCls} placeholder="OurEshop" />
               </div>
               <div>
                 <label className={labelCls}>IČO</label>
@@ -478,7 +478,7 @@ export default function AdminSettingsPage() {
               </div>
               <div>
                 <label className={labelCls}>Kontaktný e-mail</label>
-                <input type="email" value={shop.shop_email} onChange={(e) => setShop({ ...shop, shop_email: e.target.value })} className={inputCls} placeholder="info@ourstone.fun" />
+                <input type="email" value={shop.shop_email} onChange={(e) => setShop({ ...shop, shop_email: e.target.value })} className={inputCls} placeholder="info@oureshop.fun" />
               </div>
               <div>
                 <label className={labelCls}>Telefón</label>
@@ -501,7 +501,7 @@ export default function AdminSettingsPage() {
             <div>
               <label className={labelCls}>Odosielateľ (From)</label>
               <input value={emailSettings.email_from} onChange={(e) => setEmailSettings({ ...emailSettings, email_from: e.target.value })}
-                className={inputCls} placeholder="OurStone <noreply@ourstone.fun>" />
+                className={inputCls} placeholder="OurEshop <noreply@oureshop.fun>" />
             </div>
             <div>
               <label className={labelCls}>Predmet e-mailu pri objednávke</label>
@@ -512,7 +512,7 @@ export default function AdminSettingsPage() {
               <label className={labelCls}>Päta e-mailu</label>
               <textarea value={emailSettings.email_footer} onChange={(e) => setEmailSettings({ ...emailSettings, email_footer: e.target.value })}
                 rows={4} className={`${inputCls} resize-none`}
-                placeholder="OurStone s.r.o. | Hlavná 1, Bratislava | IČO: 12345678" />
+                placeholder="OurEshop s.r.o. | Hlavná 1, Bratislava | IČO: 12345678" />
             </div>
             <Msg msg={emailMsg} />
             <button type="submit" disabled={emailSaving} className="px-6 py-3 gradient-btn text-white rounded-xl font-bold text-sm shadow-md shadow-purple-200 disabled:opacity-50">

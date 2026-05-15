@@ -16,7 +16,7 @@ const content = {
     ],
     stepsTitle: "Ako postupovať pri reklamácii",
     steps: [
-      { icon: Mail, title: "1. Kontaktujte nás", text: "Napíšte nám na info@ourstone.fun alebo použite kontaktný formulár. Uveďte číslo objednávky a popis problému." },
+      { icon: Mail, title: "1. Kontaktujte nás", text: "Napíšte nám na info@oureshop.fun alebo použite kontaktný formulár. Uveďte číslo objednávky a popis problému." },
       { icon: Package, title: "2. Zabaľte tovar", text: "Tovar starostlivo zabaľte do pôvodného alebo náhradného obalu. Priložte kópiu dokladu o kúpe a popis vady." },
       { icon: RotateCcw, title: "3. Odošlite späť", text: "Zašlite balík na adresu, ktorú vám poskytneme. Odporúčame zaslať tovar doporučene s poistením." },
       { icon: CheckCircle, title: "4. Vybavenie", text: "Po prijatí tovaru vás budeme informovať o postupe. Reklamáciu vybavíme do 30 dní od jej uplatnenia." },
@@ -45,7 +45,7 @@ const content = {
     ],
     stepsTitle: "How to file a complaint",
     steps: [
-      { icon: Mail, title: "1. Contact us", text: "Write to us at info@ourstone.fun or use the contact form. Include your order number and a description of the issue." },
+      { icon: Mail, title: "1. Contact us", text: "Write to us at info@oureshop.fun or use the contact form. Include your order number and a description of the issue." },
       { icon: Package, title: "2. Pack the goods", text: "Carefully pack the goods in the original or replacement packaging. Include a copy of the proof of purchase and a description of the defect." },
       { icon: RotateCcw, title: "3. Send it back", text: "Ship the parcel to the address we provide. We recommend sending goods by registered mail with insurance." },
       { icon: CheckCircle, title: "4. Resolution", text: "Once we receive the goods, we will keep you informed of the progress. We will resolve your complaint within 30 days of receipt." },
@@ -126,7 +126,7 @@ export default function ReturnsPage() {
       </div>
 
       {/* CTA */}
-      <div className="bg-linear-to-br from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-800 rounded-3xl border border-purple-100 dark:border-gray-700 p-8 text-center">
+      <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-800 rounded-3xl border border-purple-100 dark:border-gray-700 p-8 text-center">
         <Clock size={28} className="text-purple-500 mx-auto mb-3" />
         <h2 className="text-lg font-extrabold text-gray-900 dark:text-gray-100 mb-2">{c.helpTitle}</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
@@ -137,9 +137,9 @@ export default function ReturnsPage() {
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 gradient-btn text-white rounded-xl text-sm font-bold shadow-md shadow-purple-200">
             {c.contactForm}
           </Link>
-          <a href="mailto:info@ourstone.fun"
+          <a href="mailto:info@oureshop.fun"
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-700 border border-purple-100 dark:border-gray-600 text-purple-700 dark:text-purple-300 rounded-xl text-sm font-bold hover:bg-purple-50 transition-colors">
-            info@ourstone.fun
+            info@oureshop.fun
           </a>
         </div>
       </div>

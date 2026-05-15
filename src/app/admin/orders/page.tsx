@@ -39,11 +39,15 @@ function mapOrder(row: any): Order {
   };
 }
 
+function esc(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
+}
+
 function printInvoice(order: Order) {
   const html = `
     <!DOCTYPE html><html><head>
     <meta charset="utf-8">
-    <title>Faktúra ${order.id}</title>
+    <title>Faktúra ${esc(order.id)}</title>
     <style>
       body { font-family: Arial, sans-serif; padding: 40px; color: #111; }
       h1 { font-size: 24px; margin-bottom: 4px; }
@@ -58,17 +62,17 @@ function printInvoice(order: Order) {
     </style>
     </head><body>
     <h1>Faktúra / Doklad</h1>
-    <div class="meta">OurStone · ourstone.fun · vladimirstricko@rocketmail.com</div>
+    <div class="meta">OurEshop · oureshop.fun · vladimirstricko@rocketmail.com</div>
     <div class="section">
       <div class="label">Číslo objednávky</div>
-      <strong>${order.id}</strong> &nbsp; <span class="status">${order.status}</span>
-      <div style="color:#666;font-size:13px;margin-top:4px;">Dátum: ${order.date}</div>
+      <strong>${esc(order.id)}</strong> &nbsp; <span class="status">${esc(order.status)}</span>
+      <div style="color:#666;font-size:13px;margin-top:4px;">Dátum: ${esc(order.date)}</div>
     </div>
     <div class="section">
       <div class="label">Zákazník</div>
-      <div>${order.customer}</div>
-      <div style="color:#666;font-size:13px;">${order.email}</div>
-      <div style="color:#666;font-size:13px;">${order.address}</div>
+      <div>${esc(order.customer)}</div>
+      <div style="color:#666;font-size:13px;">${esc(order.email)}</div>
+      <div style="color:#666;font-size:13px;">${esc(order.address)}</div>
     </div>
     <div class="section">
       <div class="label">Položky</div>
@@ -77,7 +81,7 @@ function printInvoice(order: Order) {
         <tbody>
           ${order.items.map(i => `
             <tr>
-              <td>${i.name}</td>
+              <td>${esc(i.name)}</td>
               <td>${i.quantity}</td>
               <td style="text-align:right">${i.price.toFixed(2)} €</td>
               <td style="text-align:right">${(i.price * i.quantity).toFixed(2)} €</td>
@@ -87,7 +91,7 @@ function printInvoice(order: Order) {
       </table>
       <div class="total">Celkom: ${order.total.toFixed(2)} €</div>
     </div>
-    ${order.notes ? `<div class="section"><div class="label">Poznámka</div><div>${order.notes}</div></div>` : ""}
+    ${order.notes ? `<div class="section"><div class="label">Poznámka</div><div>${esc(order.notes)}</div></div>` : ""}
     </body></html>
   `;
   const win = window.open("", "_blank");
@@ -117,11 +121,13 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     fetch("/api/admin/orders")
       .then((r) => r.json())
-      .then((data) => { setOrders((data ?? []).map(mapOrder)); setDataLoading(false); });
+      .then((data) => { setOrders((data ?? []).map(mapOrder)); setDataLoading(false); })
+      .catch(() => setDataLoading(false));
   }, []);
 
   const updateStatus = async (id: string, status: OrderStatus) => {
-    await fetch("/api/admin/orders", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) });
+    const res = await fetch("/api/admin/orders", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) });
+    if (!res.ok) return;
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status } : o));
     if (detail?.id === id) setDetail((d) => d ? { ...d, status } : d);
   };
@@ -134,9 +140,11 @@ export default function AdminOrdersPage() {
   const saveNote = async () => {
     if (!detail) return;
     setSavingNote(true);
-    await fetch("/api/admin/orders", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: detail.id, notes: noteInput }) });
-    setOrders((prev) => prev.map((o) => o.id === detail.id ? { ...o, notes: noteInput } : o));
-    setDetail((d) => d ? { ...d, notes: noteInput } : d);
+    const res = await fetch("/api/admin/orders", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: detail.id, notes: noteInput }) });
+    if (res.ok) {
+      setOrders((prev) => prev.map((o) => o.id === detail.id ? { ...o, notes: noteInput } : o));
+      setDetail((d) => d ? { ...d, notes: noteInput } : d);
+    }
     setSavingNote(false);
   };
 
@@ -151,7 +159,7 @@ export default function AdminOrdersPage() {
         customerEmail: manualForm.customerEmail,
         address: manualForm.address,
         notes: manualForm.notes,
-        items: items.map((i) => ({ name: i.name, price: parseFloat(i.price), quantity: parseInt(i.quantity) })),
+        items: items.map((i) => ({ name: i.name, price: parseFloat(i.price), quantity: Math.max(1, parseInt(i.quantity) || 1) })),
       }),
     });
     const data = await res.json();
@@ -373,13 +381,13 @@ export default function AdminOrdersPage() {
                   {manualForm.items.map((item, i) => (
                     <div key={i} className="grid grid-cols-5 gap-2 items-center">
                       <input value={item.name} placeholder="Názov" onChange={(e) => {
-                        const items = [...manualForm.items]; items[i].name = e.target.value; setManualForm({ ...manualForm, items });
+                        const items = manualForm.items.map((it, j) => j === i ? { ...it, name: e.target.value } : it); setManualForm({ ...manualForm, items });
                       }} className="col-span-2 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
                       <input type="number" value={item.price} placeholder="Cena" onChange={(e) => {
-                        const items = [...manualForm.items]; items[i].price = e.target.value; setManualForm({ ...manualForm, items });
+                        const items = manualForm.items.map((it, j) => j === i ? { ...it, price: e.target.value } : it); setManualForm({ ...manualForm, items });
                       }} className="col-span-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
                       <input type="number" min="1" value={item.quantity} onChange={(e) => {
-                        const items = [...manualForm.items]; items[i].quantity = e.target.value; setManualForm({ ...manualForm, items });
+                        const items = manualForm.items.map((it, j) => j === i ? { ...it, quantity: e.target.value } : it); setManualForm({ ...manualForm, items });
                       }} className="col-span-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
                       {manualForm.items.length > 1 && (
                         <button onClick={() => setManualForm({ ...manualForm, items: manualForm.items.filter((_, j) => j !== i) })}

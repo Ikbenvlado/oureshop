@@ -14,7 +14,7 @@ const content = {
       {
         title: "1. Prevádzkovateľ",
         content: [
-          "Prevádzkovateľom osobných údajov je ShopSK so sídlom na Slovensku, kontakt: info@ourstone.fun.",
+          "Prevádzkovateľom osobných údajov je ShopSK so sídlom na Slovensku, kontakt: info@oureshop.fun.",
           "Spracúvame osobné údaje v súlade s nariadením Európskeho parlamentu a Rady (EÚ) 2016/679 (GDPR) a zákonom č. 18/2018 Z. z. o ochrane osobných údajov.",
         ],
       },
@@ -49,7 +49,7 @@ const content = {
           "Prepravné spoločnosti — za účelom doručenia objednávky (meno, adresa, telefón).",
           "Platobné brány — za účelom spracovania platby (prevádzkovateľ nemá prístup k údajom o karte).",
           "Poskytovateľ e-mailových služieb Resend — za účelom zasielania potvrdzovacích e-mailov.",
-          "Supabase — cloudové úložisko databázy, prevádzkovateľ EÚ servera v Nemecku.",
+          "Neon — cloudové úložisko databázy, prevádzkovateľ EÚ servera (AWS eu-central-1, Frankfurt).",
         ],
       },
       {
@@ -87,7 +87,7 @@ const content = {
       {
         title: "1. Data Controller",
         content: [
-          "The data controller is ShopSK, based in Slovakia, contact: info@ourstone.fun.",
+          "The data controller is ShopSK, based in Slovakia, contact: info@oureshop.fun.",
           "We process personal data in accordance with Regulation (EU) 2016/679 of the European Parliament and of the Council (GDPR) and Act No. 18/2018 Coll. on the Protection of Personal Data.",
         ],
       },

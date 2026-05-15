@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Cookie, X, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
-const STORAGE_KEY = "ourstone_cookie_consent";
+const STORAGE_KEY = "oureshop_cookie_consent";
 
 type Consent = "all" | "essential";
 
@@ -20,6 +20,7 @@ export default function CookieBanner() {
   function accept(consent: Consent) {
     localStorage.setItem(STORAGE_KEY, consent);
     setVisible(false);
+    if (consent === "all") window.dispatchEvent(new Event("cookie-consent-all"));
   }
 
   if (!visible) return null;

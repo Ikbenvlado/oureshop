@@ -4,7 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = `OurStone <noreply@ourstone.fun>`;
+const FROM = `OurEshop <noreply@oureshop.fun>`;
+
+function h(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
+}
 
 export async function POST(req: Request) {
   try {
@@ -54,7 +58,7 @@ export async function POST(req: Request) {
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
         <tr>
           <td style="background:linear-gradient(135deg,#7c3aed,#a855f7);padding:28px 32px;">
-            <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">OurStone</h1>
+            <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">OurEshop</h1>
             <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">Nová registrácia zákazníka</p>
           </td>
         </tr>
@@ -67,11 +71,11 @@ export async function POST(req: Request) {
             <table cellpadding="0" cellspacing="0" style="width:100%;background:#f9fafb;border-radius:10px;padding:16px;">
               <tr>
                 <td style="padding:6px 0;font-size:13px;color:#6b7280;width:80px;">Meno</td>
-                <td style="padding:6px 0;font-size:13px;color:#111827;font-weight:600;">${name}</td>
+                <td style="padding:6px 0;font-size:13px;color:#111827;font-weight:600;">${h(name)}</td>
               </tr>
               <tr>
                 <td style="padding:6px 0;font-size:13px;color:#6b7280;">Email</td>
-                <td style="padding:6px 0;font-size:13px;color:#111827;font-weight:600;">${email}</td>
+                <td style="padding:6px 0;font-size:13px;color:#111827;font-weight:600;">${h(email)}</td>
               </tr>
               <tr>
                 <td style="padding:6px 0;font-size:13px;color:#6b7280;">Čas</td>
@@ -79,7 +83,7 @@ export async function POST(req: Request) {
               </tr>
             </table>
             <div style="margin-top:24px;">
-              <a href="https://ourstone.fun/admin/customers" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">Zobraziť zákazníkov</a>
+              <a href="https://oureshop.fun/admin/customers" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">Zobraziť zákazníkov</a>
             </div>
           </td>
         </tr>

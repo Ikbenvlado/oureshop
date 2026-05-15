@@ -5,8 +5,8 @@ import { Resend } from "resend";
 import { logAdminAction } from "@/lib/adminLog";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const SHOP_NAME = "OurStone";
-const FROM = `${SHOP_NAME} <noreply@ourstone.fun>`;
+const SHOP_NAME = "OurEshop";
+const FROM = `${SHOP_NAME} <noreply@oureshop.fun>`;
 
 function approvedHtml(productName: string) {
   return `
@@ -32,7 +32,7 @@ function approvedHtml(productName: string) {
             <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.6;">
               Tvoja recenzia produktu <strong>${productName}</strong> bola schválená a je teraz viditeľná pre ostatných zákazníkov.
             </p>
-            <a href="https://ourstone.fun" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">Prejsť do obchodu</a>
+            <a href="https://oureshop.fun" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">Prejsť do obchodu</a>
           </td>
         </tr>
       </table>
@@ -63,7 +63,7 @@ function rejectedHtml(productName: string) {
             <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.6;">
               Ľutujeme, tvoja recenzia produktu <strong>${productName}</strong> nebola schválená, pretože nespĺňa naše podmienky zverejnenia.
             </p>
-            <a href="https://ourstone.fun" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">Prejsť do obchodu</a>
+            <a href="https://oureshop.fun" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">Prejsť do obchodu</a>
           </td>
         </tr>
       </table>
@@ -105,18 +105,23 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Neplatné dáta." }, { status: 400 });
   }
 
-  const review = await prisma.review.update({
-    where: { id },
-    data: { status },
-    include: {
-      user: { select: { email: true, name: true } },
-      product: { select: { name: true } },
-    },
-  });
+  let review;
+  try {
+    review = await prisma.review.update({
+      where: { id },
+      data: { status },
+      include: {
+        user: { select: { email: true, name: true } },
+        product: { select: { name: true } },
+      },
+    });
+  } catch {
+    return NextResponse.json({ error: "Recenzia sa nenašla." }, { status: 404 });
+  }
 
   await logAdminAction(admin.userId, admin.email, status === "approved" ? "approve" : "reject", "review", id, `${status === "approved" ? "Schválil" : "Zamietol"} recenziu produktu: ${review.product.name}`);
 
-  await resend.emails.send({
+  const { error: emailError } = await resend.emails.send({
     from: FROM,
     to: review.user.email,
     subject: status === "approved"
@@ -126,6 +131,7 @@ export async function PATCH(req: NextRequest) {
       ? approvedHtml(review.product.name)
       : rejectedHtml(review.product.name),
   });
+  if (emailError) console.error("Review notification email error:", emailError);
 
   return NextResponse.json(review);
 }

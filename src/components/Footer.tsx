@@ -21,16 +21,16 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link href="/" className="inline-block mb-4">
-              <span className="text-2xl font-extrabold gradient-text">OurStone</span>
+              <span className="text-2xl font-extrabold gradient-text">OurEshop</span>
             </Link>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-5">
               {t("footer_desc")}
             </p>
             <div className="space-y-2">
-              <a href="mailto:info@ourstone.fun"
+              <a href="mailto:info@oureshop.fun"
                 className="flex items-center gap-2 text-sm text-gray-400 hover:text-purple-600 transition-colors">
                 <Mail size={14} />
-                info@ourstone.fun
+                info@oureshop.fun
               </a>
               <div className="flex items-center gap-2 text-sm text-gray-400">
                 <MapPin size={14} />
@@ -131,12 +131,8 @@ export default function Footer() {
       <div className="border-t border-purple-50 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-gray-400">
-            © {new Date().getFullYear()} OurStone.{" "}
-            {lang === "en" ? (
-              <>All rights <Link href="/admin" className="hover:text-purple-500 transition-colors">reserved</Link>.</>
-            ) : (
-              <>Všetky práva <Link href="/admin" className="hover:text-purple-500 transition-colors">vyhradené</Link>.</>
-            )}
+            © {new Date().getFullYear()} OurEshop.{" "}
+            {lang === "en" ? "All rights reserved." : "Všetky práva vyhradené."}
           </p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-xs text-gray-400">

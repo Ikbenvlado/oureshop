@@ -50,7 +50,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
-              <span className="text-2xl font-extrabold gradient-text">OurStone</span>
+              <span className="text-2xl font-extrabold gradient-text">OurEshop</span>
             </Link>
 
             <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ export default function Header() {
               {/* Cart */}
               <button
                 onClick={openCart}
-                aria-label={t("minicart_close")}
+                aria-label={t("nav_cart")}
                 className="relative flex items-center gap-2 px-4 py-2 gradient-btn text-white rounded-full text-sm font-semibold shadow-md shadow-purple-200">
                 <ShoppingCart size={16} />
                 <span className="hidden sm:inline">{t("nav_cart")}</span>

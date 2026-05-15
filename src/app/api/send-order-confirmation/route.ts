@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const SHOP_NAME = "OurStone";
-const FROM = `${SHOP_NAME} <objednavky@ourstone.fun>`;
+function h(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
+}
+
+const SHOP_NAME = "OurEshop";
+const FROM = `${SHOP_NAME} <objednavky@oureshop.fun>`;
 const OWNER_EMAIL = "vladimirstricko@rocketmail.com";
 
 interface OrderItem {
@@ -34,7 +39,7 @@ function customerHtml(
       (item) => `
       <tr>
         <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:14px;color:#374151;">
-          ${item.name} <span style="color:#9ca3af;">× ${item.quantity}</span>
+          ${h(item.name)} <span style="color:#9ca3af;">× ${Number(item.quantity)}</span>
         </td>
         <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:14px;color:#111827;font-weight:600;text-align:right;white-space:nowrap;">
           ${(item.price * item.quantity).toFixed(2)} €
@@ -61,8 +66,8 @@ function customerHtml(
             <div style="text-align:center;margin-bottom:24px;">
               <div style="width:64px;height:64px;background:#f0fdf4;border-radius:50%;margin:0 auto 16px;line-height:64px;font-size:32px;">✅</div>
               <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:800;">${en ? "Order received!" : "Objednávka prijatá!"}</h2>
-              <p style="margin:0;font-size:15px;color:#6b7280;">${en ? "Thank you," : "Ďakujeme,"} <strong style="color:#111827;">${name}</strong>!</p>
-              <p style="margin:6px 0 0;font-size:13px;color:#9ca3af;font-family:monospace;">${orderId}</p>
+              <p style="margin:0;font-size:15px;color:#6b7280;">${en ? "Thank you," : "Ďakujeme,"} <strong style="color:#111827;">${h(name)}</strong>!</p>
+              <p style="margin:6px 0 0;font-size:13px;color:#9ca3af;font-family:monospace;">${h(orderId)}</p>
             </div>
           </td>
         </tr>
@@ -89,11 +94,11 @@ function customerHtml(
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf5ff;border-radius:10px;padding:16px;">
               <tr><td style="padding:6px 16px;">
                 <p style="margin:0;font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;">${en ? "Delivery address" : "Doručovacia adresa"}</p>
-                <p style="margin:3px 0 0;font-size:14px;color:#374151;">${address}</p>
+                <p style="margin:3px 0 0;font-size:14px;color:#374151;">${h(address)}</p>
               </td></tr>
               <tr><td style="padding:6px 16px;">
                 <p style="margin:0;font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;">${en ? "Phone" : "Telefón"}</p>
-                <p style="margin:3px 0 0;font-size:14px;color:#374151;">${phone}</p>
+                <p style="margin:3px 0 0;font-size:14px;color:#374151;">${h(phone)}</p>
               </td></tr>
               <tr><td style="padding:6px 16px;">
                 <p style="margin:0;font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;">${en ? "Payment method" : "Spôsob platby"}</p>
@@ -106,8 +111,8 @@ function customerHtml(
           <td style="padding:0 32px 32px;text-align:center;">
             <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">
               ${en
-                ? `Your order will be delivered within <strong>2–4 business days</strong>.<br>Questions? <a href="mailto:info@ourstone.fun" style="color:#7c3aed;text-decoration:none;">info@ourstone.fun</a>`
-                : `Vaša objednávka bude doručená do <strong>2–4 pracovných dní</strong>.<br>Otázky? <a href="mailto:info@ourstone.fun" style="color:#7c3aed;text-decoration:none;">info@ourstone.fun</a>`
+                ? `Your order will be delivered within <strong>2–4 business days</strong>.<br>Questions? <a href="mailto:info@oureshop.fun" style="color:#7c3aed;text-decoration:none;">info@oureshop.fun</a>`
+                : `Vaša objednávka bude doručená do <strong>2–4 pracovných dní</strong>.<br>Otázky? <a href="mailto:info@oureshop.fun" style="color:#7c3aed;text-decoration:none;">info@oureshop.fun</a>`
               }
             </p>
           </td>
@@ -138,7 +143,7 @@ function adminHtml(
     payment === "card" ? "Platobná karta" : payment === "transfer" ? "Bankový prevod" : "Dobierka";
 
   const itemsList = items
-    .map((i) => `<li style="margin:4px 0;color:#374151;">${i.name} × ${i.quantity} — ${(i.price * i.quantity).toFixed(2)} €</li>`)
+    .map((i) => `<li style="margin:4px 0;color:#374151;">${h(i.name)} × ${Number(i.quantity)} — ${(i.price * i.quantity).toFixed(2)} €</li>`)
     .join("");
 
   return `<!DOCTYPE html>
@@ -151,7 +156,7 @@ function adminHtml(
         <tr>
           <td style="background:linear-gradient(135deg,#7c3aed,#a855f7);padding:24px 32px;">
             <h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">${SHOP_NAME}</h1>
-            <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">🛒 Nová objednávka — ${orderId}</p>
+            <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">🛒 Nová objednávka — ${h(orderId)}</p>
           </td>
         </tr>
         <tr>
@@ -159,17 +164,17 @@ function adminHtml(
             <table width="100%" cellpadding="0" cellspacing="0" style="border-spacing:0 8px;">
               <tr><td style="padding:10px 14px;background:#f8f4ff;border-radius:8px;">
                 <p style="margin:0;font-size:11px;color:#9333ea;font-weight:600;text-transform:uppercase;">Zákazník</p>
-                <p style="margin:4px 0 0;font-size:15px;color:#1f2937;font-weight:500;">${name}</p>
+                <p style="margin:4px 0 0;font-size:15px;color:#1f2937;font-weight:500;">${h(name)}</p>
               </td></tr>
               <tr><td style="height:6px;"></td></tr>
               <tr><td style="padding:10px 14px;background:#f8f4ff;border-radius:8px;">
                 <p style="margin:0;font-size:11px;color:#9333ea;font-weight:600;text-transform:uppercase;">Kontakt</p>
-                <p style="margin:4px 0 0;font-size:14px;color:#1f2937;">${email} · ${phone}</p>
+                <p style="margin:4px 0 0;font-size:14px;color:#1f2937;">${h(email)} · ${h(phone)}</p>
               </td></tr>
               <tr><td style="height:6px;"></td></tr>
               <tr><td style="padding:10px 14px;background:#f8f4ff;border-radius:8px;">
                 <p style="margin:0;font-size:11px;color:#9333ea;font-weight:600;text-transform:uppercase;">Adresa</p>
-                <p style="margin:4px 0 0;font-size:14px;color:#1f2937;">${address}</p>
+                <p style="margin:4px 0 0;font-size:14px;color:#1f2937;">${h(address)}</p>
               </td></tr>
               <tr><td style="height:6px;"></td></tr>
               <tr><td style="padding:10px 14px;background:#f8f4ff;border-radius:8px;">
@@ -192,6 +197,11 @@ function adminHtml(
 }
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!(session?.user as any)?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await req.json();
   const { name, email, orderId, items, shipping, total, address, phone, payment, lang = "sk" } = body;
 
