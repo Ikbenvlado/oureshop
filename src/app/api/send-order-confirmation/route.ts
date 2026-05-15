@@ -9,7 +9,7 @@ function h(str: string): string {
 }
 
 const SHOP_NAME = "OurEshop";
-const FROM = `${SHOP_NAME} <objednavky@oureshop.fun>`;
+const FROM = `${SHOP_NAME} <objednavky@ourstone.fun>`;
 const OWNER_EMAIL = "vladimirstricko@rocketmail.com";
 
 interface OrderItem {

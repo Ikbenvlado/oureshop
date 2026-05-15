@@ -10,7 +10,7 @@ function h(str: string): string {
 }
 
 const SHOP_NAME = "OurEshop";
-const FROM = `${SHOP_NAME} <noreply@oureshop.fun>`;
+const FROM = `${SHOP_NAME} <noreply@ourstone.fun>`;
 const OWNER_EMAIL = "vladimirstricko@rocketmail.com";
 
 function adminNotificationHtml(userName: string, productName: string, rating: number, comment: string) {

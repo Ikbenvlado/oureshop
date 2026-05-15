@@ -8,7 +8,7 @@ function h(str: string): string {
 }
 
 const SHOP_NAME = "OurEshop";
-const FROM = `${SHOP_NAME} <noreply@oureshop.fun>`;
+const FROM = `${SHOP_NAME} <noreply@ourstone.fun>`;
 const OWNER_EMAIL = "vladimirstricko@rocketmail.com";
 
 function notificationHtml(meno: string, email: string, sprava: string) {

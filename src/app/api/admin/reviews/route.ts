@@ -6,7 +6,7 @@ import { logAdminAction } from "@/lib/adminLog";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const SHOP_NAME = "OurEshop";
-const FROM = `${SHOP_NAME} <noreply@oureshop.fun>`;
+const FROM = `${SHOP_NAME} <noreply@ourstone.fun>`;
 
 function approvedHtml(productName: string) {
   return `

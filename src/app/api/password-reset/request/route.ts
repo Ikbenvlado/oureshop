@@ -31,17 +31,17 @@ export async function POST(req: Request) {
       },
     });
 
-    const baseUrl = process.env.AUTH_URL || "https://ourstone.fun";
+    const baseUrl = process.env.AUTH_URL || "https://oureshop.fun";
     const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
     await resend.emails.send({
-      from: "OurStone <noreply@ourstone.fun>",
+      from: "OurEshop <noreply@ourstone.fun>",
       to: email,
-      subject: "Obnovenie hesla — OurStone",
+      subject: "Obnovenie hesla — OurEshop",
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
           <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);padding:24px;border-radius:12px 12px 0 0;text-align:center">
-            <h1 style="color:#fff;margin:0;font-size:24px">OurStone</h1>
+            <h1 style="color:#fff;margin:0;font-size:24px">OurEshop</h1>
           </div>
           <div style="background:#fff;padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
             <p>Dobrý deň,</p>

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = `OurEshop <noreply@oureshop.fun>`;
+const FROM = `OurEshop <noreply@ourstone.fun>`;
 
 function h(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
