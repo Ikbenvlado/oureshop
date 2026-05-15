@@ -152,7 +152,8 @@ Potvrdenie viditeľné: ${shown}
     }
 
     await page.locator('button[type="submit"]').click();
-    await page.waitForTimeout(4000);
+    // Čakáme na presmerovanie alebo zostaneme na /register (ak email už existuje)
+    await page.waitForURL(url => true, { timeout: 6000 }).catch(() => {});
 
     const redirected = !page.url().includes("/register");
 
